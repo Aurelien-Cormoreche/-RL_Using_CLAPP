@@ -29,7 +29,7 @@ class ActCrit1Layer(nn.Module):
             test_features = self.clapp_model(test_input)
             feature_dim = test_features.shape[1]
         
-        action_dim = env.action_space.n
+        action_dim = env.action_space
         print(f"CLAPP feature dimension: {feature_dim}, Action dimension: {action_dim}")
         
         # Actor and Critic heads
@@ -43,7 +43,7 @@ class ActCrit1Layer(nn.Module):
     
     
     def extract_features(self, state, keep_patches=False):
-        state = torch.tensor(state, dtype=torch.float32)# Add batch dimension
+        state = torch.tensor(state, dtype=torch.float32)# Add batch dimension 
         state = state.view(state.shape[2], 1, state.shape[0], state.shape[1])  # Assuming state is (H, W, C)
         with torch.no_grad():
             features = self.clapp_model(state, all_layers=False, keep_patches=keep_patches)

@@ -9,6 +9,7 @@ from envs.T_maze.custom_T_Maze_V0 import myTmaze
 
 
 if __name__ == "__main__":
+    
    
     clapp = os.path.abspath("trained_models")
     
@@ -42,8 +43,6 @@ if __name__ == "__main__":
          # Episode finished, now perform the training update
         loss = model.calculate_losses_and_update(optimizer)
         
-        
-
         print(f"Episode {episode+1}, Total Reward: {total_reward}, Loss: {loss:.4f}")
         env.render()
 
