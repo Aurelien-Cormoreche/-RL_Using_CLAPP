@@ -5,7 +5,7 @@ import numpy as np
 import os
 
 # Import the CLAPP model loader (assuming the CLAPP code is in a file called clapp_model.py)
-from load_standalone_model import load_model as load_clapp_model
+from utils.load_standalone_model import load_model as load_clapp_model
 
 # Option 1: CLAPP as Feature Extractor for Actor-Critic
 class ActCrit1Layer(nn.Module):

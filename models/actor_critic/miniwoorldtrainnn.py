@@ -3,16 +3,16 @@ from act_1layer_alg import ActCrit1Layer
 import miniworld
 import torch
 import torch.nn.functional as F
-import load_standalone_model 
+import utils.load_standalone_model 
 import os
-from custom_tmaze import MyTMaze
+from envs.T_maze.custom_T_Maze_V0 import myTmaze
 
 
 if __name__ == "__main__":
    
     clapp = os.path.abspath("trained_models")
     
-    maze = MyTMaze()
+    maze = ()
     gym.envs.register(
         id='MyTMaze-v0',
         entry_point='custom_tmaze:MyTMaze',
