@@ -12,10 +12,10 @@ from miniworld.manual_control import ManualControl
 from gymnasium import utils, spaces
 import gymnasium as gym
 
-class myTmaze(MiniWorldEnv, utils.EzPickle):
+class MyTmaze(MiniWorldEnv, utils.EzPickle):
     
-    def __init__(self, add_obstacles = False, add_visual_cue_object = True, intermediate_rewards = True,reward_left = False,
-                 probability_of_left = 0.5,latent_learning = False, add_visual_cue_image = True, left_arm = False, right_arm = True, **kwargs):
+    def __init__(self, add_obstacles = False, add_visual_cue_object = False, intermediate_rewards = False,reward_left = True,
+                 probability_of_left = 0.5,latent_learning = False, add_visual_cue_image = False, left_arm = True, right_arm = True, **kwargs):
         
 
 
@@ -139,7 +139,7 @@ def main():
     args = parser.parse_args()
     view_mode = "top" if args.top_view else "agent"
 
-    env = gym.make(args.env_name, view=view_mode, render_mode="human", add_obstacles = True)
+    env = gym.make(args.env_name, view=view_mode, render_mode="human")
     miniworld_version = miniworld.__version__
 
     print(f"Miniworld v{miniworld_version}, Env: {args.env_name}")
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     # make sure register the environment before running
     gym.envs.register(
         id='MyTMaze-v0',
-        entry_point='custom_T_Maze_V0:myTmaze',
+        entry_point='custom_T_Maze_V0:MyTmaze',
     )
     main()
 
