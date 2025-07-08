@@ -13,7 +13,7 @@ from RL_algorithms.actor_critic.models import ActorModel, CriticModel
 from RL_algorithms.actor_critic.act_1layer_alg import ActCrit1Layer
 from utils.load_standalone_model import load_model
 from envs.T_maze.custom_T_Maze_V0 import MyTmaze
-from utils.utils import save_model_and_state, create_ml_flow_experiment
+from utils.utils import save_models, create_ml_flow_experiment
 
 import torch
 import torch.nn.functional as F
@@ -22,7 +22,7 @@ import numpy as np
 
 import mlflow
 
-def train(opt, env, model_path, device):
+def train(opt, env, model_path, device, models_dict):
     
     CLAPP_FEATURE_DIM = 1024
     gamma = opt.gamma
@@ -45,8 +45,11 @@ def train(opt, env, model_path, device):
     action_dim = env.action_space.n
 
 
+    
     actor = ActorModel(CLAPP_FEATURE_DIM, action_dim).to(device)
     critic = CriticModel(CLAPP_FEATURE_DIM,'GELU').to(device)
+    models_dict['actor'] = actor
+    models_dict['critic'] = critic
 
     actor_optimizer = torch.optim.AdamW(actor.parameters(), lr = opt.actor_lr)
     critic_optimizer = torch.optim.AdamW(critic.parameters(),lr = opt.critic_lr)
@@ -176,16 +179,20 @@ def main():
 
     model_path = os.path.abspath('trained_models')
 
-    
+    models_dict = {}
+   
     create_ml_flow_experiment(args.experiment_name)
     #need to add a logger
 
     #can add loss
     
-    train(opt= args, env= env,model_path= model_path,device =device)
+    try:
+        train(opt= args, env= env,model_path= model_path,device =device, models_dict= models_dict)
+    except:
+       save_models(models_dict)
+
+    save_models(models_dict)
     
-        
-        
 
 
 

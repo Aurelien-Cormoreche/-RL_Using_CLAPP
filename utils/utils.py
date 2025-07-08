@@ -2,14 +2,13 @@ import torch
 import mlflow
 from mlflow import MlflowClient, MlflowException
 
-def save_model_and_state(model, optimizer, filename):
-    torch.save(
-        {
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-        },
-        f'trained_models/{filename}'
-    )
+def save_models(models_dict):
+    for name in models_dict:
+        models_dict[name].to('cpu')
+        models_dict[name] = models_dict[name].state_dict()
+    
+    torch.save(models_dict,'trained_models/saved_from_run')
+
 
 
 def create_ml_flow_experiment(experiment_name,uri ="file:mlruns"):
