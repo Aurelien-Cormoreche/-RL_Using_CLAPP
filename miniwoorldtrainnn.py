@@ -17,7 +17,7 @@ if __name__ == "__main__":
         id='MyTMaze-v0',
         entry_point='envs/T_maze/custom_T_Maze_V0:MyTMaze'
     )
-    env = gym.make("MyTMaze-v0", render_mode="human")
+    env = gym.make("MyTMaze-v0" )
     model = ActCrit1Layer(env,clapp_model_path=clapp)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 

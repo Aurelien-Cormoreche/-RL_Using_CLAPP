@@ -2,17 +2,14 @@ import os
 import argparse
 import miniworld.wrappers
 import tqdm
+import traceback
 
 from tqdm import std
 import miniworld
 import gymnasium as gym
 
-
-
-from RL_algorithms.actor_critic.models import ActorModel, CriticModel
-from RL_algorithms.actor_critic.act_1layer_alg import ActCrit1Layer
+from RL_algorithms.actor_critic.train import train_actor_critic
 from utils.load_standalone_model import load_model
-from envs.T_maze.custom_T_Maze_V0 import MyTmaze
 from utils.utils import save_models, create_ml_flow_experiment
 
 import torch
@@ -44,18 +41,6 @@ def train(opt, env, model_path, device, models_dict):
     
     action_dim = env.action_space.n
 
-
-    
-    actor = ActorModel(CLAPP_FEATURE_DIM, action_dim).to(device)
-    critic = CriticModel(CLAPP_FEATURE_DIM,'GELU').to(device)
-    models_dict['actor'] = actor
-    models_dict['critic'] = critic
-
-    actor_optimizer = torch.optim.AdamW(actor.parameters(), lr = opt.actor_lr)
-    critic_optimizer = torch.optim.AdamW(critic.parameters(),lr = opt.critic_lr)
-
-    current_rewards = 0
-
     if opt.track_run:
         mlflow.start_run(run_name= opt.run_name)
         mlflow.log_params(
@@ -67,73 +52,9 @@ def train(opt, env, model_path, device, models_dict):
                 'gamma': gamma
             }
         )
-    
-    for epoch in tqdm.tqdm(range(opt.num_epochs)):
-        
-        state, info = env.reset()
-        state = torch.tensor(state, device= device, dtype= torch.float32)
-        state = state.reshape(state.shape[2], 1, state.shape[0], state.shape[1]) 
-        features = encoder(state)
 
-        done = False
-        total_reward = 0
-        length_episode = 0
-        tot_loss_critic = 0
-        tot_loss_actor = 0
-        while not done:
-
-            probs_action = actor(features)
-            value = critic(features)
-
-            dist = torch.distributions.Categorical(probs_action)
-            action = dist.sample()
-            
-
-            n_state, reward, terminated, truncated, info = env.step(action)
-
-            n_state = torch.tensor(n_state, device= device, dtype= torch.float32)
-            n_state = state.reshape(n_state.shape[2], 1, n_state.shape[0], n_state.shape[1]) 
-            
-            features = encoder(n_state)
-            delayed_value = reward + gamma * critic(features).detach()
-            advantage = delayed_value - value
-
-            criterion_critic = nn.SmoothL1Loss()
-            loss_critic = criterion_critic(delayed_value,value)
-            critic_optimizer.zero_grad()
-            loss_critic.backward()
-            critic_optimizer.step()
-            tot_loss_critic += loss_critic.detach()
-            
-
-            loss_actor = -dist.log_prob(action)*advantage.detach()
-            actor_optimizer.zero_grad()
-            loss_actor.backward()
-            actor_optimizer.step()
-            tot_loss_actor += loss_actor.detach()
-
-            state = n_state
-            total_reward += reward
-            length_episode += 1
-            done= terminated or truncated
-        
-        current_rewards += total_reward  
-
-        if opt.track_run:
-            mlflow.log_metrics(
-                {
-                    'reward': total_reward,
-                    'loss_acotr': tot_loss_actor/length_episode,
-                    'loss_critic':  tot_loss_critic/length_episode,
-                    'length_episode': length_episode
-                }
-            )
-            
-        
-        if epoch % 100 == 0:
-            std.tqdm.write(f'Epoch number {epoch}, Average reward over the 100 last epochs: {current_rewards/100}')
-            current_rewards = 0
-    
+    if opt.algorithm.startswith("actor_critic"):
+        train_actor_critic(opt, env, device, encoder, gamma, models_dict, action_dim, CLAPP_FEATURE_DIM)
 
     env.close()
  
@@ -144,15 +65,17 @@ def main():
     parser.add_argument('--environment',default='T_maze/custom_T_Maze_V0.py', help= 'name of the environment')
     parser.add_argument('--algorithm',default= 'actor_critic', help= 'type of RL algorithm to use')
     parser.add_argument('--encoder', default= "CLAPP", help="decide which encoder to use")
-    parser.add_argument('--seed', default= 0, help= 'manual seed for training')
+    parser.add_argument('--seed', default= 0, type= int, help= 'manual seed for training')
     parser.add_argument('--num_epochs', default= 1800, help= 'number of epochs for the training')
-    parser.add_argument('--actor_lr', default= 1e-2, help= 'learning rate for the actor if the algorithm is actor critic')
-    parser.add_argument('--critic_lr', default= 1e-2, help= 'learning rate for the critic if the algorithm is actor critic')
-    parser.add_argument('--max_episode_steps', default= 1500, help= 'max number of steps per environment')
-    parser.add_argument('--gamma', default= 0.99, help= 'gamma for training in the environment')
+    parser.add_argument('--actor_lr', default= 1e-6, help= 'learning rate for the actor if the algorithm is actor critic')
+    parser.add_argument('--critic_lr', default= 1e-4, help= 'learning rate for the critic if the algorithm is actor critic')
+    parser.add_argument('--max_episode_steps', default= 800, help= 'max number of steps per environment')
+    parser.add_argument('--gamma', default= 0.999, help= 'gamma for training in the environment')
     parser.add_argument('--track_run', default= False, help= 'track the training run with mlflow')
     parser.add_argument('--experiment_name', default= 'actor_critic_tMaze_default', help='name of experiment on mlFlow')
     parser.add_argument('--run_name', default= 'default_run', help= 'name of the run on MlFlow')
+    parser.add_argument('--t_delay_theta', default= 0.9, help= 'delay for actor in case of eligibility trace')
+    parser.add_argument('--t_delay_w', default= 0.9, help= 'delay for the critic in case of eligibility trace')
 
     args = parser.parse_args()
     
@@ -161,7 +84,9 @@ def main():
         entry_point='envs.T_maze.custom_T_Maze_V0:MyTmaze'
     )
     
-    env = miniworld.wrappers.GreyscaleWrapper(gym.make("MyTMaze", render_mode="human", max_episode_steps= args.max_episode_steps))
+    env = miniworld.wrappers.GreyscaleWrapper(gym.make("MyTMaze", max_episode_steps= args.max_episode_steps, render_mode = 'human'))
+    env.render_frame = False
+    
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
@@ -182,16 +107,17 @@ def main():
     models_dict = {}
    
     create_ml_flow_experiment(args.experiment_name)
-    #need to add a logger
-
-    #can add loss
     
     try:
         train(opt= args, env= env,model_path= model_path,device =device, models_dict= models_dict)
-    except:
-       save_models(models_dict)
+    except Exception as e:
+       print(e)
+       print(traceback.format_exc())
+       #save_models(models_dict)
 
     save_models(models_dict)
+
+    
     
 
 

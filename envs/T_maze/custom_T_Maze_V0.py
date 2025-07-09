@@ -18,7 +18,9 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
                  probability_of_left = 0.5,latent_learning = False, add_visual_cue_image = False, left_arm = True, right_arm = True, **kwargs):
         
 
+        
 
+        
         self.latent_learning = latent_learning
         self.intermediate_rewards = intermediate_rewards
         self.add_obstacles = add_obstacles
@@ -29,16 +31,22 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
         self.left_arm = left_arm
         self.right_arm = right_arm
         
+
+        
         if self.add_obstacles:
             self.num_obstacles = 3
        
         
-        MiniWorldEnv.__init__(self, max_episode_steps=280, **kwargs)
+        MiniWorldEnv.__init__(self,**kwargs)
         utils.EzPickle.__init__(self, **kwargs)
         
         self.action_space = spaces.Discrete(self.actions.move_forward + 1)
         
-
+    def turn_agent(self, turn_angle):
+        turn_angle = 90
+        return super().turn_agent(turn_angle)
+    
+    
     def _gen_world(self):
 
         min_z_room2 = -6.85 if self.left_arm else -1.37
@@ -76,8 +84,8 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
                 
 
 
-        self.place_agent(room= room1, dir=self.np_random.uniform(-math.pi / 4, math.pi / 4))
-
+        #self.place_agent(room= room1, dir=self.np_random.uniform(-math.pi / 4, math.pi / 4))
+        self.place_agent(pos= [0.20,0,-0.90], dir= math.pi/2)
 
         pos_list = [[1.37*(2*x+1)-0.22, 1.37, -1.37] for x in range(3)] \
                 + [[1.37*(2*x+1)-0.22, 1.37, 1.37] for x in range(3)] \
