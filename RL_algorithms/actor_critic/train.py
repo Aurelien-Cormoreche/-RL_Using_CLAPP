@@ -82,12 +82,15 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, action_dim
             delayed_value = reward + gamma * critic(features).detach() 
             advantage = delayed_value - value if not done or truncated else reward
             
+            mlflow.log_metric('values', value,step= step)
+            mlflow.log_metric('advantage', advantage,step= step)
+
             if not eligibility_traces:
                 tot_loss_critic, tot_loss_actor = update_a2c(value, delayed_value, critic_optimizer, 
-                                                            advantage,logprob, actor_optimizer,actor, tot_loss_critic, tot_loss_actor)
+                                                            advantage,logprob, actor_optimizer, tot_loss_critic, tot_loss_actor)
             else:
                 update_eligibility(z_w, z_theta, t_delay_w, t_delay_theta, gamma, I,
-                                   value, advantage, logprob, critic, actor ,opt.critic_lr, opt.actor_lr,step)
+                                   value, advantage, logprob, critic, actor ,opt.critic_lr, opt.actor_lr)
                 I = gamma * I
             
             env.render()
@@ -124,7 +127,6 @@ def update_a2c(value, delayed_value, critic_optimizer, advantage, logprob, actor
     loss_critic = criterion_critic(delayed_value,value)
     critic_optimizer.zero_grad()
     loss_critic.backward()
-    
     critic_optimizer.step()
     tot_loss_critic += loss_critic.item()
     
@@ -140,22 +142,20 @@ def update_a2c(value, delayed_value, critic_optimizer, advantage, logprob, actor
 
     return(tot_loss_critic, tot_loss_actor)
 
-def update_eligibility(z_w, z_theta, t_delay_w, t_delay_theta, gamma, I, value, advantage, logprob, critic, actor, lr_w, lr_theta, step):
+def update_eligibility(z_w, z_theta, t_delay_w, t_delay_theta, gamma, I, value, advantage, logprob, critic, actor, lr_w, lr_theta):
 
     grad_values = torch.autograd.grad(value, critic.parameters())
     grad_policy = torch.autograd.grad(logprob, actor.parameters())
-
-    mlflow.log_metric('values', value,step= step)
-    mlflow.log_metric('advantage', advantage,step= step)
+    
     z_w = [gamma * t_delay_w * z + I * p for z, p in zip(z_w, grad_values)]
     z_theta = [gamma * t_delay_theta * z + I * p for z, p in zip(z_theta, grad_policy)]
 
     with torch.no_grad():
+
         for p, z in zip(critic.parameters(), z_w):
-          
             p  += lr_w * advantage.squeeze() * z
-        for p, z in zip(actor.parameters(), z_theta):
-            
+
+        for p, z in zip(actor.parameters(), z_theta):    
             p  += lr_theta * advantage.squeeze() * z
     
         

@@ -68,7 +68,7 @@ def main():
     parser.add_argument('--seed', default= 0, type= int, help= 'manual seed for training')
     parser.add_argument('--num_epochs', default= 1800, help= 'number of epochs for the training')
     parser.add_argument('--actor_lr', default= 1e-6, help= 'learning rate for the actor if the algorithm is actor critic')
-    parser.add_argument('--critic_lr', default= 1e-4, help= 'learning rate for the critic if the algorithm is actor critic')
+    parser.add_argument('--critic_lr', default= 1e-6, help= 'learning rate for the critic if the algorithm is actor critic')
     parser.add_argument('--max_episode_steps', default= 800, help= 'max number of steps per environment')
     parser.add_argument('--gamma', default= 0.999, help= 'gamma for training in the environment')
     parser.add_argument('--track_run', default= False, help= 'track the training run with mlflow')
