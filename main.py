@@ -10,7 +10,7 @@ import gymnasium as gym
 
 from RL_algorithms.actor_critic.train import train_actor_critic
 from utils.load_standalone_model import load_model
-from utils.utils import save_models, create_ml_flow_experiment, parsing, create_env
+from utils.utils import save_models, create_ml_flow_experiment, parsing, create_env, launch_experiment
 
 import torch
 import torch.nn.functional as F
@@ -90,7 +90,23 @@ def main():
     create_ml_flow_experiment(args.experiment_name)
     
     try:
-        train(opt= args, env= env,model_path= model_path,device =device, models_dict= models_dict)
+        if args.experiment:
+
+            run_dicts = [ 
+                { 'run_name' : 'try1',
+                    'actor_lr' : 1e-5,
+                    'critic_lr' : 1e-3 },
+                    {
+                    'run_name' : 'try2',
+                    'actor_lr' : 1e-5,
+                    'critic_lr' : 1e-3 
+                }         
+            ]
+
+            seeds = [1,5,10]
+            launch_experiment(args, run_dicts, seeds, 'try', device, models_dict)
+        else:
+            train(opt= args, env= env,model_path= model_path,device =device, models_dict= models_dict)
     except Exception as e:
        print(e)
        print(traceback.format_exc())

@@ -11,7 +11,7 @@ from mlflow import MlflowClient, MlflowException
 
 from utils.load_standalone_model import load_model
 
-from main import train
+
 
 def parsing():
     parser = argparse.ArgumentParser()
@@ -24,11 +24,12 @@ def parsing():
     parser.add_argument('--critic_lr', default= 5e-3, help= 'learning rate for the critic if the algorithm is actor critic')
     parser.add_argument('--max_episode_steps', default= 800, help= 'max number of steps per environment')
     parser.add_argument('--gamma', default= 0.999, help= 'gamma for training in the environment')
-    parser.add_argument('--track_run', default= False, help= 'track the training run with mlflow')
+    parser.add_argument('--track_run', action= 'store_true', help= 'track the training run with mlflow')
     parser.add_argument('--experiment_name', default= 'actor_critic_tMaze_default', help='name of experiment on mlFlow')
     parser.add_argument('--run_name', default= 'default_run', help= 'name of the run on MlFlow')
     parser.add_argument('--t_delay_theta', default= 0.9, help= 'delay for actor in case of eligibility trace')
     parser.add_argument('--t_delay_w', default= 0.9, help= 'delay for the critic in case of eligibility trace')
+    parser.add_argument('--experiment', action= 'store_true', help= 'run a full scale MLflow experiment')
 
     return parser.parse_args()
     
@@ -44,6 +45,8 @@ def create_env(args):
     return env
     
 def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dict):
+
+    from main import train
     
     create_ml_flow_experiment(experiment_name)
 
@@ -58,14 +61,14 @@ def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dic
             torch.cuda.manual_seed(seed)
         else:
             print('not possible to assign seed')
-        for run_dict in experiment_name:
+        for run_dict in run_dicts:
             env = create_env(opt)
 
             for key in run_dict:
-                opt[key] = run_dict[key]
-                
+                setattr(opt,key,run_dict[key])
+
             create_env(opt)
-            train(opt, env, model_path,device, None)
+            train(opt, env, model_path,device, models_dict)
             
 
 
@@ -85,6 +88,10 @@ def create_ml_flow_experiment(experiment_name,uri ="file:mlruns"):
     except MlflowException:
         mlflow.create_experiment(experiment_name)
 
+
+
+
+'''
 def get_wall_states(env):
     pos_list = [[1.37*(2*x+1)-0.22, 1.37, -1.37] for x in range(3)] \
                 + [[1.37*(2*x+1)-0.22, 1.37, 1.37] for x in range(3)] \
@@ -126,8 +133,7 @@ def collect_features(env, model_path, device, all_layers = False):
     return features
 
 
-    
-    
+    '''
 
 
 

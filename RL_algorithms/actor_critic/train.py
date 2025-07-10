@@ -10,7 +10,8 @@ import gymnasium as gym
 
 from .models import ActorModel, CriticModel
 
-def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, clapp_feature_dim, tau = 0.1):
+def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, clapp_feature_dim, tau = 0.005):
+    print(opt.actor_lr)
 
     if opt.algorithm == "actor_critic_e":
         print("using eligibility traces")
