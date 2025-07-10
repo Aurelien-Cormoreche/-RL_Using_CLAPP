@@ -43,8 +43,13 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
         self.action_space = spaces.Discrete(self.actions.move_forward + 1)
         
     def turn_agent(self, turn_angle):
-        turn_angle = 90
+        turn_angle *= 3
         return super().turn_agent(turn_angle)
+    
+    def move_agent(self, fwd_dist, fwd_drift):
+        self.max_forward_step = 3 * 0.15
+        fwd_dist = 3 * 0.15
+        return super().move_agent(fwd_dist, fwd_drift)
     
     
     def _gen_world(self):
@@ -58,12 +63,12 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
         self.connect_rooms(room_a= room1, room_b= room2, min_z= -1.37, max_z= 1.37)
 
         if not self.latent_learning:
-            self.box = Box(color="red")
+            self.box = Box(color='red')
 
             self.key = Key(color= 'red')
             self.found_key = False
 
-
+            []
             if self.reward_left or self.np_random.uniform() < self.probability_of_left:
                 self.place_entity(self.box, room=room2, max_z=room2.min_z + 1)
                 if self.add_visual_cue_object:
@@ -82,10 +87,10 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
                     ent = MeshEnt(mesh_name= 'barrel.obj',height= 1)
                     )
                 
+        
 
-
-        #self.place_agent(room= room1, dir=self.np_random.uniform(-math.pi / 4, math.pi / 4))
-        self.place_agent(pos= [0.20,0,-0.90], dir= math.pi/2)
+        self.place_agent(room= room1, dir=self.np_random.uniform(-math.pi / 4, math.pi / 4))
+        
 
         pos_list = [[1.37*(2*x+1)-0.22, 1.37, -1.37] for x in range(3)] \
                 + [[1.37*(2*x+1)-0.22, 1.37, 1.37] for x in range(3)] \

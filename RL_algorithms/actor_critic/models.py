@@ -10,7 +10,6 @@ class ActorModel(nn.Module):
         
 
         self.layer = Linear(num_features, num_actions)
-        torch.nn.init.normal_(self.layer.weight,std= 0.000000001)
         self.activation = LeakyReLU()
         self.softmax = Softmax(dim= 1)
         

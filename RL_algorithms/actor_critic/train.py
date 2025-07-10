@@ -10,7 +10,7 @@ import gymnasium as gym
 
 from .models import ActorModel, CriticModel
 
-def train_actor_critic(opt, env, device, encoder, gamma, models_dict, action_dim, clapp_feature_dim):
+def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, clapp_feature_dim, tau = 0.1):
 
     if opt.algorithm == "actor_critic_e":
         print("using eligibility traces")
@@ -22,7 +22,10 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, action_dim
     
     actor = ActorModel(clapp_feature_dim, action_dim).to(device)
     critic = CriticModel(clapp_feature_dim,'LeakyReLU').to(device)
-    
+    if target:
+        target_critic = CriticModel(clapp_feature_dim, 'LeakyReLU').to(device)
+        target_critic.load_state_dict(critic.state_dict())
+
 
     models_dict['actor'] = actor
     models_dict['critic'] = critic
@@ -63,8 +66,9 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, action_dim
          
             
             probs_action = actor(features)
+           
             value = critic(features)
-            dist = torch.distributions.Categorical(logits= probs_action) #should technically be with probs = 
+            dist = torch.distributions.Categorical(logits= probs_action) 
           
             action = dist.sample()
 
@@ -79,11 +83,18 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, action_dim
             
             features = encoder(n_state_t)
             
-            delayed_value = reward + gamma * critic(features).detach() 
+            if target:
+                new_value = target_critic(features).detach() 
+            else:
+                new_value = critic(features).detach
+
+            delayed_value = reward + gamma * new_value
+
             advantage = delayed_value - value if not done or truncated else reward
             
-            mlflow.log_metric('values', value,step= step)
-            mlflow.log_metric('advantage', advantage,step= step)
+            if opt.track_run:
+                mlflow.log_metric('values', value,step= step)
+                mlflow.log_metric('advantage', advantage,step= step)
 
             if not eligibility_traces:
                 tot_loss_critic, tot_loss_actor = update_a2c(value, delayed_value, critic_optimizer, 
@@ -92,8 +103,14 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, action_dim
                 update_eligibility(z_w, z_theta, t_delay_w, t_delay_theta, gamma, I,
                                    value, advantage, logprob, critic, actor ,opt.critic_lr, opt.actor_lr)
                 I = gamma * I
-            
-            env.render()
+
+            if target:
+                target_state_dict = target_critic.state_dict()
+                critic_state_dict = critic.state_dict()
+                for key in critic_state_dict:
+                    target_state_dict[key] = tau *critic_state_dict[key] + (1 - tau) * target_state_dict[key] 
+                target_critic.load_state_dict(target_state_dict)
+     
 
             state = n_state_t
             total_reward += reward
