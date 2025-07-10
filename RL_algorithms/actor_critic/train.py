@@ -11,7 +11,6 @@ import gymnasium as gym
 from .models import ActorModel, CriticModel
 
 def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, clapp_feature_dim, tau = 0.005):
-    print(opt.actor_lr)
 
     if opt.algorithm == "actor_critic_e":
         print("using eligibility traces")
@@ -49,7 +48,9 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
      
         state = torch.tensor(state, device= device, dtype= torch.float32)
         state = state.reshape(state.shape[2], 1, state.shape[0], state.shape[1]) 
-        features = encoder(state)
+        features = encoder(state, keep_patches = opt.keep_patches)
+        features = features.flatten().unsqueeze(0)
+       
 
         done = False
         total_reward = 0
@@ -69,7 +70,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             probs_action = actor(features)
            
             value = critic(features)
-            dist = torch.distributions.Categorical(logits= probs_action) 
+            dist = torch.distributions.Categorical(probs= probs_action) 
           
             action = dist.sample()
 
@@ -77,12 +78,14 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
 
             n_state, reward, terminated, truncated, _ = env.step(action.detach().item())
             
+            reward *= 10
 
             n_state_t = torch.tensor(n_state, device= device, dtype= torch.float32)
             n_state_t = n_state_t.reshape(n_state_t.shape[2], 1, n_state_t.shape[0], n_state_t.shape[1]) 
 
             
-            features = encoder(n_state_t)
+            features = encoder(n_state_t, keep_patches = opt.keep_patches)
+            features = features.flatten().unsqueeze(0)
             
             if target:
                 new_value = target_critic(features).detach() 
@@ -119,6 +122,9 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             step += 1
             done= terminated or truncated
 
+            if opt.render:
+               env.render() 
+
 
         
         current_rewards += total_reward  
@@ -141,7 +147,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
 
 
 def update_a2c(value, delayed_value, critic_optimizer, advantage, logprob, actor_optimizer, tot_loss_critic, tot_loss_actor):
-    criterion_critic = nn.SmoothL1Loss()
+    criterion_critic = nn.MSELoss()
     loss_critic = criterion_critic(delayed_value,value)
     critic_optimizer.zero_grad()
     loss_critic.backward()

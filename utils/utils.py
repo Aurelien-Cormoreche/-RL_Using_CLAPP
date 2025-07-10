@@ -20,16 +20,18 @@ def parsing():
     parser.add_argument('--encoder', default= "CLAPP", help="decide which encoder to use")
     parser.add_argument('--seed', default= 0, type= int, help= 'manual seed for training')
     parser.add_argument('--num_epochs', default= 1800, help= 'number of epochs for the training')
-    parser.add_argument('--actor_lr', default= 5e-3, help= 'learning rate for the actor if the algorithm is actor critic')
-    parser.add_argument('--critic_lr', default= 5e-3, help= 'learning rate for the critic if the algorithm is actor critic')
-    parser.add_argument('--max_episode_steps', default= 800, help= 'max number of steps per environment')
-    parser.add_argument('--gamma', default= 0.999, help= 'gamma for training in the environment')
+    parser.add_argument('--actor_lr', default= 5e-4, help= 'learning rate for the actor if the algorithm is actor critic')
+    parser.add_argument('--critic_lr', default= 1e-4, help= 'learning rate for the critic if the algorithm is actor critic')
+    parser.add_argument('--max_episode_steps', default= 400, help= 'max number of steps per environment')
+    parser.add_argument('--gamma', default= 0.99, help= 'gamma for training in the environment')
     parser.add_argument('--track_run', action= 'store_true', help= 'track the training run with mlflow')
     parser.add_argument('--experiment_name', default= 'actor_critic_tMaze_default', help='name of experiment on mlFlow')
     parser.add_argument('--run_name', default= 'default_run', help= 'name of the run on MlFlow')
     parser.add_argument('--t_delay_theta', default= 0.9, help= 'delay for actor in case of eligibility trace')
     parser.add_argument('--t_delay_w', default= 0.9, help= 'delay for the critic in case of eligibility trace')
     parser.add_argument('--experiment', action= 'store_true', help= 'run a full scale MLflow experiment')
+    parser.add_argument('--render', action= 'store_true', help= 'will render the maze')
+    parser.add_argument('--keep_patches', action= 'store_true', help= 'keep the patches for the encoder')
 
     return parser.parse_args()
     
@@ -39,8 +41,9 @@ def create_env(args):
         entry_point='envs.T_maze.custom_T_Maze_V0:MyTmaze'
     )
     
-    env = miniworld.wrappers.GreyscaleWrapper(gym.make("MyTMaze", max_episode_steps= args.max_episode_steps, render_mode = None))
+    env = miniworld.wrappers.GreyscaleWrapper(gym.make("MyTMaze", max_episode_steps= args.max_episode_steps, render_mode = 'human' if args.render else None))
     env.render_frame = False
+    
 
     return env
     

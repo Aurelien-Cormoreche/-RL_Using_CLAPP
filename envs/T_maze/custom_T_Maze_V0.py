@@ -16,10 +16,7 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
     
     def __init__(self, add_obstacles = False, add_visual_cue_object = False, intermediate_rewards = False,reward_left = True,
                  probability_of_left = 0.5,latent_learning = False, add_visual_cue_image = False, left_arm = True, right_arm = True, **kwargs):
-        
-
-        
-
+    
         
         self.latent_learning = latent_learning
         self.intermediate_rewards = intermediate_rewards

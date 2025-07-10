@@ -22,6 +22,8 @@ import mlflow
 def train(opt, env, model_path, device, models_dict):
     
     CLAPP_FEATURE_DIM = 1024
+    if opt.keep_patches:
+        CLAPP_FEATURE_DIM = 15 * 1024
     gamma = opt.gamma
 
     if opt.encoder == 'CLAPP':
@@ -60,16 +62,14 @@ def train(opt, env, model_path, device, models_dict):
  
 
 
-def main():
-
-    args = parsing()
+def main(args):
 
     env = create_env(args)
 
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
-
+    
     if torch.cuda.is_available():
         device = torch.device("cuda")
         torch.cuda.manual_seed(args.seed)
@@ -114,15 +114,9 @@ def main():
 
     save_models(models_dict)
 
-    
-    
-
-
-
-
-    
-
 
     
 if __name__ == '__main__':
-    main()
+    
+    args = parsing()
+    main(args)
