@@ -40,7 +40,8 @@ def train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, clapp_
         batch_returns,
         batch_values,
         states_t,
-        is_next_observation_terminal_t) = collect_rollouts(opt, envs, device, agent, opt.len_rollout,
+        is_next_observation_terminal_t,
+        nums_run) = collect_rollouts(opt, envs, device, agent, opt.len_rollout,
                                                            clapp_feature_dim, action_dim, gamma, states_t, 
                                                            is_next_observation_terminal_t, count_num_steps_env, nums_run)
        
@@ -119,7 +120,8 @@ def collect_rollouts(opt, envs, device, agent, len_rollouts, feature_dim, action
         batch_returns.flatten(),
         batch_values.flatten(),
         states_t,
-        is_next_observation_terminal_t)
+        is_next_observation_terminal_t,
+        nums_run)
 
 
 def compute_advantages(len_rollouts, num_envs, gamma, lambda_gae, device, is_next_observation_terminal_t, next_value_t, is_episode_terminated_t, values_t, rewards):

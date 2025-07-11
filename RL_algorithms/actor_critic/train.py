@@ -72,31 +72,26 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
 
         while not done:
 
-            probs_action = actor(features)        
-            dist = torch.distributions.Categorical(probs= probs_action) 
-            action = dist.sample()
-            logprob = dist.log_prob(action)
-
-            value = critic(features)
+            action, logprob = agent.get_action_and_log_prob_from_features(features)
+            value = agent.get_value_from_features(features)
 
             n_state, reward, terminated, truncated, _ = env.step([action.detach().item()])
 
             reward = reward[0]
             terminated = terminated[0]
             truncated = truncated[0]
+
             n_state_t = torch.tensor(n_state, device= device, dtype= torch.float32)
+
             if opt.greyscale:
                 n_state_t = torch.unsqueeze(n_state_t, dim= 1)
            
-
-            
-            features = encoder(n_state_t, keep_patches = opt.keep_patches)
-            features = features.flatten().unsqueeze(0)
-            
+            features = agent.get_features(n_state_t).flatten().unsqueeze()
+           
             if target:
                 new_value = target_critic(features).detach() 
             else:
-                new_value = critic(features).detach
+                new_value = agent.get_value_from_features(features)
 
             delayed_value = reward + gamma * new_value
 
@@ -109,6 +104,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             if not eligibility_traces:
                 tot_loss_critic, tot_loss_actor = update_a2c(value, delayed_value, critic_optimizer, 
                                                             advantage,logprob, actor_optimizer, tot_loss_critic, tot_loss_actor)
+            
             else:
                 update_eligibility(z_w, z_theta, t_delay_w, t_delay_theta, gamma, I,
                                    value, advantage, logprob, critic, actor ,opt.critic_lr, opt.actor_lr)
