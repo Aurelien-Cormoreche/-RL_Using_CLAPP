@@ -1,0 +1,144 @@
+import os
+import argparse
+import miniworld.wrappers
+import tqdm
+import traceback
+
+from tqdm import std
+import miniworld
+import gymnasium as gym
+
+from RL_algorithms.actor_critic.train import train_actor_critic
+from RL_algorithms.PPO.train import train_PPO
+
+from utils.load_standalone_model import load_model
+from utils.utils import save_models, create_ml_flow_experiment, parsing, create_envs, launch_experiment, collect_features
+
+import torch
+import torch.nn.functional as F
+from torchvision.models import resnet50, ResNet50_Weights
+
+import torch.nn as nn
+import numpy as np
+
+import mlflow
+
+def train(opt, envs, model_path, device, models_dict):
+    
+    gamma = opt.gamma
+
+    if opt.encoder == 'CLAPP':
+        encoder = load_model(model_path= model_path).eval()
+        feature_dim = 1024
+        if not opt.greyscale:
+            feature_dim *= 3
+        if opt.keep_patches:
+            feature_dim = 15 * 1024
+    elif opt.encoder == 'resnet':    
+        encoder = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+        feature_dim = 1000
+    else:
+        print('no available encoder matched the argument')
+        return
+    
+    encoder.to(device)
+    encoder.compile(backend="aot_eager")
+
+    for param in encoder.parameters():
+        param.requires_grad = False
+    
+    action_dim = envs.single_action_space.n
+
+    if opt.algorithm.startswith("actor_critic"):
+        if opt.track_run:
+            mlflow.start_run(run_name= opt.run_name)
+            mlflow.log_params(
+                {
+                    'num_envs' : opt.num_envs,
+                    'greyscale' : opt.greyscale,
+                    'lr1': opt.actor_lr,
+                    'lr2': opt.critic_lr,
+                    'encoder': opt.encoder,
+                    'num_epochs': opt.num_epochs,
+                    'gamma': gamma,
+                    'keep_patches' : opt.keep_patches, 
+                    'seed' : opt.seed                   
+                }
+        )
+        train_actor_critic(opt, envs, device, encoder, gamma, models_dict, True , action_dim,feature_dim)
+    else:
+        if opt.track_run:
+            mlflow.start_run(run_name= opt.run_name)
+            mlflow.log_params(
+                {
+                    'num_envs' : opt.num_envs,
+                    'greyscale' : opt.greyscale,
+                    'lr' : opt.lr,
+                    'encoder': opt.encoder,
+                    'num_epochs': opt.num_epochs,
+                    'gamma': gamma,
+                    'lamda_GAE' : opt.lambda_gae,
+                    'keep_patches' : opt.keep_patches,
+                    'len_rollout' : opt.len_rollout,
+                    'num_updates' : opt.num_updates,
+                    'seed' : opt.seed
+
+                }
+        )
+            
+        train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, feature_dim)
+    envs.close()
+ 
+
+
+def main(args):
+
+
+    envs = create_envs(args, args.num_envs)
+
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        torch.cuda.manual_seed(args.seed)
+
+    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        device = torch.device("mps")
+        torch.mps.manual_seed(args.seed)
+
+    else:
+        device = torch.device("cpu")
+        print('cpu device no seed set')
+
+
+    model_path = os.path.abspath('trained_models')
+
+    models_dict = {}
+   
+    create_ml_flow_experiment(args.experiment_name)
+    
+
+    if args.experiment:
+
+        run_dicts = [ 
+            { 'run_name' : 'try1',
+                'actor_lr' : 1e-5,
+                'critic_lr' : 1e-3 },
+                {
+                'run_name' : 'try2',
+                'actor_lr' : 1e-5,
+                'critic_lr' : 1e-3                 
+            }         
+            
+        ]
+
+        seeds = [1,5,10]
+        launch_experiment(args, run_dicts, seeds, 'try', device, models_dict)
+    else:
+        train(opt= args, envs= envs,model_path= model_path,device =device, models_dict= models_dict)
+    
+if __name__ == '__main__':
+    
+    args = parsing()
+    main(args)

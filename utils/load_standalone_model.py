@@ -12,6 +12,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from PIL import Image
 
 import os
 import sys
@@ -300,6 +301,9 @@ class FullVisionModel(torch.nn.Module):
                           "encoder.0.model.13.bias": state_dict["l6_b"]}
         return new_state_dict
 
+    gray_mean = 0.4120  # values for STL-10, train+unsupervised combined
+    gray_std = 0.2570
+
     def __init__(self, opt):
         super().__init__()
         self.opt = opt
@@ -346,7 +350,66 @@ class FullVisionModel(torch.nn.Module):
 
         return encoder
 
-    def forward(self, x, all_layers=False, keep_patches=False):
+    def _grayscale_batch(self, x):
+        weights = torch.tensor([0.2989, 0.5870, 0.1140], device=x.device).view(1, 3, 1, 1)
+        return (x * weights).sum(dim=1, keepdim=True)
+
+    def _transform_input(self, x, is_normalized):
+        """
+        Accepts PIL image, numpy array, or torch tensor.
+        If only one image given, prepend batch dimension.
+        Applies the necessary transformations to the input: grayscale if given in color;
+        normalize if not is_normalized (if color input, should NOT be normalized).
+        """
+        # convert to tensor
+        if isinstance(x, Image.Image):
+            x = np.array(x)
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        if not isinstance(x, torch.Tensor):
+            raise TypeError(f"Unsupported type: {type(x)}")
+
+        x = x.float()
+
+        # Check if single image or batch, and reorder dimensions
+        if x.ndim == 3:
+            # Single image: (H, W, C) or (C, H, W)
+            if x.shape[0] <= 4:
+                # Likely (C, H, W)
+                x = x.unsqueeze(0)  # (1, C, H, W)
+            else:
+                # Likely (H, W, C)
+                x = x.permute(2, 0, 1).unsqueeze(0)  # (1, C, H, W)
+        elif x.ndim == 4:
+            # Batch: (B, H, W, C) or (B, C, H, W)
+            if x.shape[-1] <= 4:
+                # (B, H, W, C)
+                x = x.permute(0, 3, 1, 2)  # (B, C, H, W)
+            # else assume (B, C, H, W)
+        else:
+            raise ValueError(f"Unsupported shape: {x.shape}")
+
+        if x.max() > 1.0:
+            # print("WARNING: supposing values are in 0-255")
+            x = x / 255
+
+        if x.size(1) == 1:
+            need_grayscale = False
+        elif x.size(1) in [3, 4]:
+            need_grayscale = True
+        else:
+            raise RuntimeError("Number of channels in input not recognized: should be 1 for grayscale input and 3"
+                               "for color input (will be grayscaled)")
+
+        if need_grayscale:
+            x = self._grayscale_batch(x)   # grayscale
+        if need_grayscale or not is_normalized:
+            x = (x - self.gray_mean) / self.gray_std
+
+        return x
+
+    def forward(self, x, is_normalized=False, all_layers=False, keep_patches=False):
+        x = self._transform_input(x, is_normalized)
         n_patches_x, n_patches_y = None, None
         outs = []
 
@@ -374,18 +437,22 @@ def load_model(model_path, option=0):
 
     Returns:
         model: a CLAPP model (VGG-6).
-            As a torch.nn.Module, model can be called as such: output = model(x, all_layers=False, keep_patches=False)
-                (both keyword arguments optional) where:
-                x is a batch of data, in the format of a torch tensor of size (batch_size, 1, height, width) (with
-                    height and width >= 27; recommended: 92)
+            As a torch.nn.Module, model can be called as such:
+                output = model(x, is_normalized=False, all_layers=False, keep_patches=False)
+                (keyword arguments optional) where:
+                x is a batch of data, in the format of a PIl / numpy array / torch tensor of
+                    size (batch_size, 1 or 3, height, width) (with height and width >= 27; recommended: 92)
+                    Pass is_normalized=True if x (in 0-1) is already standardized; else pass x raw and
+                    is_normalized=False (in this case, mean and std from STL-10 will be used for normalization).
                 output is the output representations, of size (batch_size, channels) (default)
                     If model is called with all_layers=True, then output is a list (of length 6) of such a
                     representation at the output of each layer of the network. model(x) = model(x, all_layers=True)[-1]
                     If model is called with keep_patches=True, then the representation(s) are of
                     shape (bs, channels, n_patches_y, n_patches_x) instead of (batch_size, channels). The additional
-                    dimensions represent the 'patches' (of size 27x27) that the input image is split into. For keep_patches=False, the
-                    representations are the average over all patches. Especially if the input is large, retaining the 
-                    individual patches may provide richer representations, as it retains some spatial information.
+                    dimensions represent the 'patches' (of size 27x27) that the input image is split into. For
+                    keep_patches=False, the representations are the average over all patches. Especially if the input is
+                    large, retaining the individual patches may provide richer representations, as it retains some
+                    spatial information.
     """
     opt = Options(option=option)
 
@@ -415,4 +482,4 @@ def load_model(model_path, option=0):
 
 if __name__ == '__main__':
     file = sys.argv[1]
-    load_model(file, 0)
+    model = load_model(file, 0)
