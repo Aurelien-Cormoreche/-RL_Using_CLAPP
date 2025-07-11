@@ -8,10 +8,12 @@ from tqdm import std
 import miniworld
 import gymnasium as gym
 
-from ..models import ActorModel, CriticModel
+from ..ac_agent import AC_Agent
+from ..models import CriticModel
 
 def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, clapp_feature_dim, tau = 0.05):
 
+    assert env.num_envs == 1
     if opt.algorithm == "actor_critic_e":
         print("using eligibility traces")
         eligibility_traces = True
@@ -19,16 +21,18 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
         print("not using eligibility traces")
         eligibility_traces = False
     
-    
-    actor = ActorModel(clapp_feature_dim, action_dim).to(device)
-    critic = CriticModel(clapp_feature_dim,'LeakyReLU').to(device)
+    agent = AC_Agent(clapp_feature_dim, action_dim,'LeakyReLU', encoder).to(device)
+
+    actor = agent.actor
+    critic = agent.critic
+
     if target:
         target_critic = CriticModel(clapp_feature_dim, 'LeakyReLU').to(device)
         target_critic.load_state_dict(critic.state_dict())
+        models_dict['target'] = target_critic
 
 
-    models_dict['actor'] = actor
-    models_dict['critic'] = critic
+    models_dict['agent'] = agent
 
     if not eligibility_traces:
         actor_optimizer = torch.optim.AdamW(actor.parameters(), lr = opt.actor_lr)
@@ -42,48 +46,48 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
     current_rewards = 0
 
     step = torch.zeros([1], device= device)
+
     for epoch in tqdm.tqdm(range(opt.num_epochs)):
         
-        state, info = env.reset()
+        state, _ = env.reset(seed = opt.seed + epoch)
      
         state = torch.tensor(state, device= device, dtype= torch.float32)
-        state = state.reshape(state.shape[2], 1, state.shape[0], state.shape[1]) 
+        if opt.greyscale:
+            state = torch.unsqueeze(state, dim= 1)
+    
+        
         features = encoder(state, keep_patches = opt.keep_patches)
         features = features.flatten().unsqueeze(0)
        
-
         done = False
         total_reward = 0
         length_episode = 0
         tot_loss_critic = 0
         tot_loss_actor = 0
        
-
         if eligibility_traces:
             for z in z_theta: z.zero_()
             for z in z_w: z.zero_()
             I = 1
 
         while not done:
-         
-            
-            probs_action = actor(features, temp = 1) 
-            '''+ 100* torch.exp(- step * 1e-3))'''
-            
-           
-            value = critic(features)
-            dist = torch.distributions.Categorical(probs= probs_action) 
-          
-            action = dist.sample()
 
+            probs_action = actor(features)        
+            dist = torch.distributions.Categorical(probs= probs_action) 
+            action = dist.sample()
             logprob = dist.log_prob(action)
 
-            n_state, reward, terminated, truncated, _ = env.step(action.detach().item())
-            
-            reward *= 10
+            value = critic(features)
 
+            n_state, reward, terminated, truncated, _ = env.step([action.detach().item()])
+
+            reward = reward[0]
+            terminated = terminated[0]
+            truncated = truncated[0]
             n_state_t = torch.tensor(n_state, device= device, dtype= torch.float32)
-            n_state_t = n_state_t.reshape(n_state_t.shape[2], 1, n_state_t.shape[0], n_state_t.shape[1]) 
+            if opt.greyscale:
+                n_state_t = torch.unsqueeze(n_state_t, dim= 1)
+           
 
             
             features = encoder(n_state_t, keep_patches = opt.keep_patches)
@@ -155,8 +159,6 @@ def update_a2c(value, delayed_value, critic_optimizer, advantage, logprob, actor
     loss_critic.backward()
     critic_optimizer.step()
     tot_loss_critic += loss_critic.item()
-    
-  
 
     loss_actor = -logprob*advantage.detach()
     actor_optimizer.zero_grad()

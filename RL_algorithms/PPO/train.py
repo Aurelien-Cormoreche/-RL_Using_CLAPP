@@ -6,13 +6,13 @@ import mlflow
 import numpy as np
 from tqdm import std
 
-from .agent import PPO_Agent
+from ..ac_agent import AC_Agent
 
 def train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, clapp_feature_dim):
 
     num_envs = opt.num_envs
     
-    agent = PPO_Agent(clapp_feature_dim, action_dim, 'LeakyReLU', encoder).to(device)
+    agent = AC_Agent(clapp_feature_dim, action_dim, 'LeakyReLU', encoder).to(device)
 
     optimizer = torch.optim.AdamW(agent.parameters(), lr = opt.lr)
 

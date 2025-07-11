@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 
-from ..models import ActorModel, CriticModel
+from .models import ActorModel, CriticModel
 
 
-class PPO_Agent(nn.Module):
+class AC_Agent(nn.Module):
 
     def __init__(self,num_features, num_action, activation, encoder, *args, **kwargs):
         super().__init__(*args, **kwargs)
