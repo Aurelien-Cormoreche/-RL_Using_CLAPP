@@ -7,16 +7,17 @@ import numpy as np
 from tqdm import std
 
 from ..ac_agent import AC_Agent
-
-def train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, clapp_feature_dim):
+from utils.utils import save_models
+def train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, feature_dim):
 
     num_envs = opt.num_envs
     
-    agent = AC_Agent(clapp_feature_dim, action_dim, 'LeakyReLU', encoder).to(device)
+    agent = AC_Agent(feature_dim, action_dim, 'LeakyReLU', encoder).to(device)
 
     optimizer = torch.optim.AdamW(agent.parameters(), lr = opt.lr)
 
-    models_dict['agent'] = agent
+    models_dict['actor'] = agent.actor
+    models_dict['critic'] = agent.critic
 
     states, _ = envs.reset(seed = opt.seed)
 
@@ -33,7 +34,7 @@ def train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, clapp_
 
     for epoch in tqdm.tqdm(range(opt.num_epochs)):
 
-       (batch_features, 
+        (batch_features, 
         batch_log_probs,
         batch_actions,
         batch_advantages,
@@ -42,13 +43,19 @@ def train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, clapp_
         states_t,
         is_next_observation_terminal_t,
         nums_run) = collect_rollouts(opt, envs, device, agent, opt.len_rollout,
-                                                           clapp_feature_dim, action_dim, gamma, states_t, 
+                                                           feature_dim, action_dim, gamma, states_t, 
                                                            is_next_observation_terminal_t, count_num_steps_env, nums_run)
        
 
-       update_agent(opt, opt.num_updates, opt.len_rollout, num_envs, agent, 
+        update_agent(opt, opt.num_updates, opt.len_rollout, num_envs, agent, 
                     optimizer, batch_features, batch_advantages, batch_log_probs, 
                     batch_returns, batch_values, batch_actions, epoch)
+       
+        if epoch % opt.checkpoint_interval == 0:
+            models_dict['actor'] = agent.actor.state_dict()
+            models_dict['critic'] = agent.critic.state_dict()
+            save_models(models_dict)
+            
 
 
        
@@ -105,6 +112,9 @@ def collect_rollouts(opt, envs, device, agent, len_rollouts, feature_dim, action
                 states_t = torch.unsqueeze(states_t, dim= 1)
             
             features_t = agent.get_features(states_t, keep_patches = opt.keep_patches)
+
+            if opt.render:
+                envs.render()
 
         with torch.no_grad():
             next_values_t = agent.get_value_from_features(features_t).squeeze()

@@ -26,6 +26,8 @@ def parsing():
     parser.add_argument('--algorithm',default= 'actor_critic', help= 'type of RL algorithm to use')
     parser.add_argument('--encoder', default= "CLAPP", help="decide which encoder to use")
     parser.add_argument('--seed', default= 0, type= int, help= 'manual seed for training')
+    parser.add_argument('--checkpoint_interval', default= 50, type= int, help= 'interval at which to save the model weights')
+
 
     #hyperparameters for the training
     parser.add_argument('--num_epochs', default= 1800, help= 'number of epochs for the training')
@@ -99,9 +101,6 @@ def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dic
 
 
 def save_models(models_dict):
-    for name in models_dict:
-        models_dict[name].to('cpu')
-        models_dict[name] = models_dict[name].state_dict()
     
     torch.save(models_dict,'trained_models/saved_from_run.pt')
 

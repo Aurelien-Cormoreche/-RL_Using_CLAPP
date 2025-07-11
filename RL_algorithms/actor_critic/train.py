@@ -11,7 +11,9 @@ import gymnasium as gym
 from ..ac_agent import AC_Agent
 from ..models import CriticModel
 
-def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, clapp_feature_dim, tau = 0.05):
+from utils.utils import save_models
+
+def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, feature_dim, tau = 0.05):
 
     assert env.num_envs == 1
     if opt.algorithm == "actor_critic_e":
@@ -21,18 +23,15 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
         print("not using eligibility traces")
         eligibility_traces = False
     
-    agent = AC_Agent(clapp_feature_dim, action_dim,'LeakyReLU', encoder).to(device)
+    agent = AC_Agent(feature_dim, action_dim,'LeakyReLU', encoder).to(device)
 
     actor = agent.actor
     critic = agent.critic
 
     if target:
-        target_critic = CriticModel(clapp_feature_dim, 'LeakyReLU').to(device)
+        target_critic = CriticModel(feature_dim, 'LeakyReLU').to(device)
         target_critic.load_state_dict(critic.state_dict())
         models_dict['target'] = target_critic
-
-
-    models_dict['agent'] = agent
 
     if not eligibility_traces:
         actor_optimizer = torch.optim.AdamW(actor.parameters(), lr = opt.actor_lr)
@@ -122,6 +121,11 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             length_episode += 1
             step += 1
             done= terminated or truncated
+
+            if epoch % opt.checkpoint_interval == 0:
+                models_dict['actor'] = actor.state_dict()
+                models_dict['critic'] = critic.state_dict()
+                save_models(models_dict)
 
             if opt.render:
                env.render() 
