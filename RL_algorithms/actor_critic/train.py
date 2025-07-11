@@ -103,12 +103,12 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
 
             if not eligibility_traces:
                 tot_loss_critic, tot_loss_actor = update_a2c(value, delayed_value, critic_optimizer, 
-                                                            advantage,logprob, actor_optimizer, tot_loss_critic, tot_loss_actor)
+                                        advantage,logprob, actor_optimizer, tot_loss_critic, tot_loss_actor)
             
             else:
                 update_eligibility(z_w, z_theta, t_delay_w, t_delay_theta, gamma, I,
-                                   value, advantage, logprob, critic, actor ,opt.critic_lr, opt.actor_lr)
-                I = gamma * I
+                        value, advantage, logprob, critic, actor ,opt.critic_lr, opt.actor_lr)
+            I = gamma * I
 
             if target:
                 target_state_dict = target_critic.state_dict()
@@ -116,8 +116,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
                 for key in critic_state_dict:
                     target_state_dict[key] = tau *critic_state_dict[key] + (1 - tau) * target_state_dict[key] 
                 target_critic.load_state_dict(target_state_dict)
-     
-
+            
             state = n_state_t
             total_reward += reward
             length_episode += 1
@@ -126,10 +125,9 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
 
             if opt.render:
                env.render() 
-
-
-        
+            
         current_rewards += total_reward  
+
 
         if opt.track_run:
             mlflow.log_metrics(
@@ -141,13 +139,13 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
                 },
                 step= epoch
             )
-            
-        if epoch % 100 == 0:
-            std.tqdm.write(f'Epoch number {epoch}, Average reward over the 100 last epochs: {current_rewards/100}')
-            current_rewards = 0
-    
 
 
+
+
+
+
+     
 def update_a2c(value, delayed_value, critic_optimizer, advantage, logprob, actor_optimizer, tot_loss_critic, tot_loss_actor):
     criterion_critic = nn.MSELoss()
     loss_critic = criterion_critic(delayed_value,value)
