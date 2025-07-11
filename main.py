@@ -12,7 +12,7 @@ from RL_algorithms.actor_critic.train import train_actor_critic
 from RL_algorithms.PPO.train import train_PPO
 
 from utils.load_standalone_model import load_model
-from utils.utils import save_models, create_ml_flow_experiment, parsing, create_env, launch_experiment, collect_features
+from utils.utils import save_models, create_ml_flow_experiment, parsing, create_envs, launch_experiment, collect_features
 
 import torch
 import torch.nn.functional as F
@@ -72,7 +72,7 @@ def train(opt, envs, model_path, device, models_dict):
                 {
                     'num_envs' : opt.num_envs,
                     'greyscale' : opt.greyscale,
-                    'lr' : opt.lt,
+                    'lr' : opt.lr,
                     'encoder': opt.encoder,
                     'num_epochs': opt.num_epochs,
                     'gamma': gamma,
@@ -84,14 +84,15 @@ def train(opt, envs, model_path, device, models_dict):
 
                 }
         )
-            train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, CLAPP_FEATURE_DIM)
+            
+        train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, CLAPP_FEATURE_DIM)
     envs.close()
  
 
 
 def main(args):
 
-    envs = create_env(args, args.num_envs)
+    envs = create_envs(args, args.num_envs)
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)

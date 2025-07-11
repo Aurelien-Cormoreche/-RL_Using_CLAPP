@@ -13,10 +13,13 @@ class ActorModel(nn.Module):
         self.activation = LeakyReLU()
         self.softmax = Softmax(dim= 1)
         
-    def forward(self, x, temp):
-       x = self.activation(self.layer(x))/temp
-       x = self.softmax(x)
-       return x
+    def forward(self, x, temp = None):
+        if temp : 
+            x = self.activation(self.layer(x))/temp
+        else:
+           x = self.activation(self.layer(x))
+        x = self.softmax(x)
+        return x
     
     
 

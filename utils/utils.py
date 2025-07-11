@@ -29,8 +29,9 @@ def parsing():
 
     #hyperparameters for the training
     parser.add_argument('--num_epochs', default= 1800, help= 'number of epochs for the training')
-    parser.add_argument('--len_rollout', default= 2000, help= 'length of the continuous rollout')
+    parser.add_argument('--len_rollout', default= 1024, help= 'length of the continuous rollout')
     parser.add_argument('--num_updates', default= 16, help= 'number of steps for the optimizer')
+    parser.add_argument('--minibatch_size', default= 64, help= 'define minibatch size for offline learning')
     parser.add_argument('--actor_lr', default= 5e-3, help= 'learning rate for the actor if the algorithm is actor critic')
     parser.add_argument('--critic_lr', default= 1e-3, help= 'learning rate for the critic if the algorithm is actor critic')
     parser.add_argument('--max_episode_steps', default= 800, help= 'max number of steps per environment')
@@ -40,20 +41,18 @@ def parsing():
     parser.add_argument('--keep_patches', action= 'store_true', help= 'keep the patches for the encoder')
     parser.add_argument('--lr', default= 5e-4, help='Lr in case we need only one learning rate for our algorithm')
     parser.add_argument('--lambda_gae', default= 0.9, help='Lamda used when calculating the GAE')
-
+    parser.add_argument('--not_normalize_advantages', action= 'store_false', help= 'normalize the advantages of each minibatch')
+    parser.add_argument('--critic_eps', default= 0.3, help= 'the epsilon for clipping the critic updates' )
+    parser.add_argument('--actor_eps', default= 0.3, help= 'the epsilon for clipping the actor updates' )
+    parser.add_argument('--coeff_critic', default= 0.5, help= 'coefficient of the critic in the PPO general loss' )
+    parser.add_argument('--coeff_entropy', default= 0.01, help= 'coefficient of the entropy in the PPO general loss' )
+    parser.add_argument('--grad_clipping', action= 'store_true', help= 'do we need to clip the gradients' )
     
     #MlFlow parameters
     parser.add_argument('--track_run', action= 'store_true', help= 'track the training run with mlflow')
     parser.add_argument('--experiment_name', default= 'actor_critic_tMaze_default', help='name of experiment on mlFlow')
     parser.add_argument('--run_name', default= 'default_run', help= 'name of the run on MlFlow')
     parser.add_argument('--experiment', action= 'store_true', help= 'run a full scale MLflow experiment')
-
-   
-
-    
-
-
-    
 
     return parser.parse_args()
     
@@ -64,9 +63,11 @@ def create_envs(args, num_envs):
     )
     
     envs =gym.make_vec("MyTMaze", num_envs= num_envs,  
-                       wrappers= miniworld.wrappers.GreyscaleWrapper() if args.greyscale else None,
                        max_episode_steps= args.max_episode_steps, render_mode = 'human' if args.render else None)
+   
     
+    if args.greyscale:
+        envs = gym.wrappers.vector.GrayscaleObservation(envs)
     return envs
     
 def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dict):
@@ -137,12 +138,6 @@ def get_wall_states(env, pos_list, direction_list, device):
    
     return states
 
-        
-    
-
-
-
-
 
 def collect_features(env, model_path, device, pos_list, direction_list, all_layers = False):
     encoder = load_model(model_path= model_path).eval()
@@ -156,12 +151,9 @@ def collect_features(env, model_path, device, pos_list, direction_list, all_laye
     for param in encoder.parameters():
         param.requires_grad = False
 
-
     states = get_wall_states(env, pos_list, direction_list, device)
     
     features = encoder(states)
-
-    
 
     return features
 
