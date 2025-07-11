@@ -28,13 +28,11 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
         self.left_arm = left_arm
         self.right_arm = right_arm
         
-
-        
         if self.add_obstacles:
             self.num_obstacles = 3
        
         
-        MiniWorldEnv.__init__(self,**kwargs)
+        MiniWorldEnv.__init__(self, **kwargs)
         utils.EzPickle.__init__(self, **kwargs)
         
         self.action_space = spaces.Discrete(self.actions.move_forward + 1)
@@ -47,14 +45,14 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
         self.max_forward_step = 3 * 0.15
         fwd_dist = 3 * 0.15
         return super().move_agent(fwd_dist, fwd_drift)
-    
+
     
     def _gen_world(self):
 
         min_z_room2 = -6.85 if self.left_arm else -1.37
         max_z_room2 = 6.85 if self.right_arm else 1.37
 
-        room1 = self.add_rect_room(min_x=-0.22, max_x=8, min_z=-1.37, max_z=1.37, wall_tex="picket_fence")
+        room1 = self.add_rect_room(min_x=-0.22, max_x=8, min_z=-1.37, max_z=1.37, wall_tex="picket_fence",)
         room2 = self.add_rect_room(min_x=8, max_x=10.74, min_z= min_z_room2, max_z= max_z_room2, wall_tex="picket_fence")
 
         self.connect_rooms(room_a= room1, room_b= room2, min_z= -1.37, max_z= 1.37)
@@ -85,8 +83,8 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
                     )
                 
         
-
-        self.place_agent(room= room1, dir=self.np_random.uniform(-math.pi / 4, math.pi / 4))
+        self.agent.radius = 0.25
+        self.place_agent(room= room1,dir=self.np_random.uniform(-math.pi / 4, math.pi / 4))
         
 
         pos_list = [[1.37*(2*x+1)-0.22, 1.37, -1.37] for x in range(3)] \
@@ -105,8 +103,9 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
         for i, (pos_, dir_) in enumerate(zip(pos_list, dir_list)):
             self.entities.append(
                 ImageFrame(
-                    pos=pos_, dir=dir_, width=2.74, tex_name="stl{}".format(i + 13 if self.reward_left and i ==  8 else i )
+                    pos=pos_, dir=dir_, width=2.74, tex_name="stl{}".format(i )
                 )
+
             )
             
  

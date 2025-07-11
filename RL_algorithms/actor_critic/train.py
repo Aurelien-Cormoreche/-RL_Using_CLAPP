@@ -8,9 +8,9 @@ from tqdm import std
 import miniworld
 import gymnasium as gym
 
-from .models import ActorModel, CriticModel
+from ..models import ActorModel, CriticModel
 
-def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, clapp_feature_dim, tau = 0.005):
+def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, clapp_feature_dim, tau = 0.05):
 
     if opt.algorithm == "actor_critic_e":
         print("using eligibility traces")
@@ -41,7 +41,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             
     current_rewards = 0
 
-    step = 0
+    step = torch.zeros([1], device= device)
     for epoch in tqdm.tqdm(range(opt.num_epochs)):
         
         state, info = env.reset()
@@ -67,7 +67,9 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
         while not done:
          
             
-            probs_action = actor(features)
+            probs_action = actor(features, temp = 1) 
+            '''+ 100* torch.exp(- step * 1e-3))'''
+            
            
             value = critic(features)
             dist = torch.distributions.Categorical(probs= probs_action) 
@@ -97,8 +99,8 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             advantage = delayed_value - value if not done or truncated else reward
             
             if opt.track_run:
-                mlflow.log_metric('values', value,step= step)
-                mlflow.log_metric('advantage', advantage,step= step)
+                mlflow.log_metric('values', value.detach().squeeze().item(),step= int(step.item()))
+                mlflow.log_metric('advantage', advantage.detach().item(),step= int(step.item()))
 
             if not eligibility_traces:
                 tot_loss_critic, tot_loss_actor = update_a2c(value, delayed_value, critic_optimizer, 
