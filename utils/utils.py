@@ -22,26 +22,26 @@ def parsing():
     parser.add_argument('--render', action= 'store_true', help= 'will render the maze')
     parser.add_argument('--num_envs', type= int ,default= 8, help= 'the number of synchronous environment to spawn')
     parser.add_argument('--visible_reward', action= 'store_true', help= 'If the reward is a visible red box or not')
-
+    parser.add_argument('--max_episode_steps', default= 1000, help= 'max number of steps per environment')
     #arguments for the training
     parser.add_argument('--algorithm',default= 'actor_critic', help= 'type of RL algorithm to use')
     parser.add_argument('--encoder', default= "CLAPP", help="decide which encoder to use")
+    parser.add_argument('--keep_patches', action= 'store_true', help= 'keep the patches for the encoder')
     parser.add_argument('--seed', default= 0, type= int, help= 'manual seed for training')
     parser.add_argument('--checkpoint_interval', default= 50, type= int, help= 'interval at which to save the model weights')
 
-
     #hyperparameters for the training
     parser.add_argument('--num_epochs', default= 1800, help= 'number of epochs for the training')
+    parser.add_argument('--gamma', default= 0.995, help= 'gamma for training in the environment')    
+        
+    parser.add_argument('--actor_lr', default= 5e-3, help= 'learning rate for the actor if the algorithm is actor critic')
+    parser.add_argument('--critic_lr', default= 1e-3, help= 'learning rate for the critic if the algorithm is actor critic')
+    parser.add_argument('--t_delay_theta', default= 0.9, help= 'delay for actor in case of eligibility trace')
+    parser.add_argument('--t_delay_w', default= 0.9, help= 'delay for the critic in case of eligibility trace')
+
     parser.add_argument('--len_rollout', default= 1024, help= 'length of the continuous rollout')
     parser.add_argument('--num_updates', default= 8, help= 'number of steps for the optimizer')
     parser.add_argument('--minibatch_size', default= 256, help= 'define minibatch size for offline learning')
-    parser.add_argument('--actor_lr', default= 5e-3, help= 'learning rate for the actor if the algorithm is actor critic')
-    parser.add_argument('--critic_lr', default= 1e-3, help= 'learning rate for the critic if the algorithm is actor critic')
-    parser.add_argument('--max_episode_steps', default= 1000, help= 'max number of steps per environment')
-    parser.add_argument('--gamma', default= 0.995, help= 'gamma for training in the environment')
-    parser.add_argument('--t_delay_theta', default= 0.9, help= 'delay for actor in case of eligibility trace')
-    parser.add_argument('--t_delay_w', default= 0.9, help= 'delay for the critic in case of eligibility trace')
-    parser.add_argument('--keep_patches', action= 'store_true', help= 'keep the patches for the encoder')
     parser.add_argument('--lr', default= 5e-5, help='Lr in case we need only one learning rate for our algorithm')
     parser.add_argument('--lambda_gae', default= 0.97, help='Lamda used when calculating the GAE')
     parser.add_argument('--not_normalize_advantages', action= 'store_false', help= 'normalize the advantages of each minibatch')
@@ -50,7 +50,7 @@ def parsing():
     parser.add_argument('--coeff_critic', default= 0.5, help= 'coefficient of the critic in the PPO general loss' )
     parser.add_argument('--coeff_entropy', default= 0.0005, help= 'coefficient of the entropy in the PPO general loss' )
     parser.add_argument('--grad_clipping', action= 'store_true', help= 'do we need to clip the gradients' )
-    
+
     #MlFlow parameters
     parser.add_argument('--track_run', action= 'store_true', help= 'track the training run with mlflow')
     parser.add_argument('--experiment_name', default= 'actor_critic_tMaze_default', help='name of experiment on mlFlow')

@@ -16,20 +16,37 @@ from utils.utils import save_models
 def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, feature_dim, tau = 0.05):
 
     assert env.num_envs == 1
+
+
+    if opt.track_run:
+            mlflow.log_params(
+                {
+                    'actor_lr' : opt.actor_lr,
+                    'critic_lr' : opt.critic_lr,
+                }
+            )
+
     if opt.algorithm == "actor_critic_e":
         print("using eligibility traces")
         eligibility_traces = True
+        if opt.track_run:
+                mlflow.log_params(
+                    {
+                        't_delay_theta' : opt.t_delay_theta,
+                        't_delay_w' : opt.critt_delay_wic_lr,
+                    }
+                )
     else:
         print("not using eligibility traces")
         eligibility_traces = False
     
-    agent = AC_Agent(feature_dim, action_dim,'LeakyReLU', encoder).to(device)
+    agent = AC_Agent(feature_dim, action_dim,None, encoder).to(device)
 
     actor = agent.actor
     critic = agent.critic
 
     if target:
-        target_critic = CriticModel(feature_dim, 'LeakyReLU').to(device)
+        target_critic = CriticModel(feature_dim, None).to(device)
         target_critic.load_state_dict(critic.state_dict())
         models_dict['target'] = target_critic
 

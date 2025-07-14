@@ -49,43 +49,25 @@ def train(opt, envs, model_path, device, models_dict):
     
     action_dim = envs.single_action_space.n
 
-    if opt.algorithm.startswith("actor_critic"):
-        if opt.track_run:
-            mlflow.start_run(run_name= opt.run_name)
-            mlflow.log_params(
+    if opt.track_run:
+        mlflow.start_run(run_name= opt.run_name)
+        mlflow.log_params(
                 {
+                    'algorithm' : opt.algorithm,
                     'num_envs' : opt.num_envs,
                     'greyscale' : opt.greyscale,
-                    'lr1': opt.actor_lr,
-                    'lr2': opt.critic_lr,
                     'encoder': opt.encoder,
                     'num_epochs': opt.num_epochs,
                     'gamma': gamma,
                     'keep_patches' : opt.keep_patches, 
-                    'seed' : opt.seed                   
+                    'seed' : opt.seed,
+                    'visible_reward' : opt.visible_reward                
                 }
         )
+
+    if opt.algorithm.startswith("actor_critic"):
         train_actor_critic(opt, envs, device, encoder, gamma, models_dict, True , action_dim,feature_dim)
     else:
-        if opt.track_run:
-            mlflow.start_run(run_name= opt.run_name)
-            mlflow.log_params(
-                {
-                    'num_envs' : opt.num_envs,
-                    'greyscale' : opt.greyscale,
-                    'lr' : opt.lr,
-                    'encoder': opt.encoder,
-                    'num_epochs': opt.num_epochs,
-                    'gamma': gamma,
-                    'lamda_GAE' : opt.lambda_gae,
-                    'keep_patches' : opt.keep_patches,
-                    'len_rollout' : opt.len_rollout,
-                    'num_updates' : opt.num_updates,
-                    'seed' : opt.seed
-
-                }
-        )
-            
         train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, feature_dim)
     envs.close()
  

@@ -10,9 +10,29 @@ from ..ac_agent import AC_Agent
 from utils.utils import save_models
 def train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, feature_dim):
 
+    if opt.track_run :
+        mlflow.log_params(
+            {
+                'lr' : opt.lr,                    
+                'num_epochs': opt.num_epochs,
+                'gamma': gamma,
+                'lamda_GAE' : opt.lambda_gae,
+                'len_rollout' : opt.len_rollout,
+                'num_updates' : opt.num_updates,
+                'minibatch_size' : opt.minibatch_size,
+                'not_normalize_advantages' : opt.not_normalize_advantages,
+                'critic_eps' : opt.critic_eps,
+                'actor_eps' : opt.actor_eps,
+                'coeff_critic' : opt.coeff_critic,
+                'coeff_entropy' : opt.coeff_entropy,
+                'grad_clipping' : opt.grad_clipping
+                }
+        )
+            
+
     num_envs = opt.num_envs
     
-    agent = AC_Agent(feature_dim, action_dim, 'LeakyReLU', encoder).to(device)
+    agent = AC_Agent(feature_dim, action_dim, None, encoder).to(device)
 
     optimizer = torch.optim.AdamW(agent.parameters(), lr = opt.lr)
 

@@ -1,35 +1,22 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import Linear, ReLU, GELU, LeakyReLU, Softmax, Tanh
+from torch.nn import Linear, ReLU, GELU, LeakyReLU, Softmax, Tanh, Identity
 
 
 class ActorModel(nn.Module):
-    def __init__(self, num_features, num_actions,activation,*args, **kwargs):
+    def __init__(self, num_features, num_actions,*args, **kwargs):
         super().__init__(*args, **kwargs)
         
 
         self.layer = Linear(num_features, num_actions)
-        
-        if activation == 'ReLu':
-            self.activation = ReLU()
-        if activation == 'GELU':
-            self.activation = GELU()
-        if activation == "LeakyReLU":
-            self.activation = LeakyReLU()
-        if activation == "Tanh":
-            self.activation == Tanh()
-        else:
-            print('activation not found: continuing with Tanh')
-            self.activation = Tanh()
-
         self.softmax = Softmax(dim= 1)
         
     def forward(self, x, temp = None):
         if temp : 
-            x = self.activation(self.layer(x))/temp
+            x = self.layer(x)/temp
         else:
-           x = self.activation(self.layer(x))
+           x = self.layer(x)
         x = self.softmax(x)
         return x
     
@@ -37,23 +24,21 @@ class ActorModel(nn.Module):
 
 class CriticModel(nn.Module):
 
-    def __init__(self, num_features, activation, *args, **kwargs):
+    def __init__(self, num_features, activation = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.layer = Linear(num_features, 1)
         
-
+    
         if activation == 'ReLu':
             self.activation = ReLU()
         if activation == 'GELU':
             self.activation = GELU()
         if activation == "LeakyReLU":
             self.activation = LeakyReLU()
-        if activation == "Tanh":
-            self.activation == Tanh()
         else:
-            print('activation not found: continuing with Tanh')
-            self.activation = Tanh()
+            print('activation not found: continuing without')
+            self.activation = Identity()
 
         
     def forward(self, x):

@@ -111,7 +111,8 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
 
             )
             
- 
+    def _reward(self):
+        return 1.0 - (self.step_count / self.max_episode_steps)
 
     def step(self, action):
         obs, reward, termination, truncation, info = super().step(action)
