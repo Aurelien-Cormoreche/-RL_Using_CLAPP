@@ -5,12 +5,24 @@ from torch.nn import Linear, ReLU, GELU, LeakyReLU, Softmax, Tanh
 
 
 class ActorModel(nn.Module):
-    def __init__(self, num_features, num_actions,*args, **kwargs):
+    def __init__(self, num_features, num_actions,activation,*args, **kwargs):
         super().__init__(*args, **kwargs)
         
 
         self.layer = Linear(num_features, num_actions)
-        self.activation = LeakyReLU()
+        
+        if activation == 'ReLu':
+            self.activation = ReLU()
+        if activation == 'GELU':
+            self.activation = GELU()
+        if activation == "LeakyReLU":
+            self.activation = LeakyReLU()
+        if activation == "Tanh":
+            self.activation == Tanh()
+        else:
+            print('activation not found: continuing with Tanh')
+            self.activation = Tanh()
+
         self.softmax = Softmax(dim= 1)
         
     def forward(self, x, temp = None):
@@ -37,9 +49,11 @@ class CriticModel(nn.Module):
             self.activation = GELU()
         if activation == "LeakyReLU":
             self.activation = LeakyReLU()
+        if activation == "Tanh":
+            self.activation == Tanh()
         else:
-            print('activation not found: continuing with ReLu')
-            self.activation = ReLU()
+            print('activation not found: continuing with Tanh')
+            self.activation = Tanh()
 
         
     def forward(self, x):
