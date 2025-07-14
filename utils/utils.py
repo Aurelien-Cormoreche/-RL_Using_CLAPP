@@ -21,6 +21,7 @@ def parsing():
     parser.add_argument('--greyscale', action= 'store_true', help = 'determine if we keep render the state in greyscale')
     parser.add_argument('--render', action= 'store_true', help= 'will render the maze')
     parser.add_argument('--num_envs', type= int ,default= 8, help= 'the number of synchronous environment to spawn')
+    parser.add_argument('--visible_reward', action= 'store_true', help= 'If the reward is a visible red box or not')
 
     #arguments for the training
     parser.add_argument('--algorithm',default= 'actor_critic', help= 'type of RL algorithm to use')
@@ -65,7 +66,7 @@ def create_envs(args, num_envs):
     )
     
     envs =gym.make_vec("MyTMaze", num_envs= num_envs,  
-                       max_episode_steps= args.max_episode_steps, render_mode = 'human' if args.render else None)
+                       max_episode_steps= args.max_episode_steps, render_mode = 'human' if args.render else None, visible_reward = args.visible_reward)
    
 
     if args.greyscale:

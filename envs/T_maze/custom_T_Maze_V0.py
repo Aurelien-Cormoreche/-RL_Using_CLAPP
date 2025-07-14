@@ -14,10 +14,10 @@ import gymnasium as gym
 
 class MyTmaze(MiniWorldEnv, utils.EzPickle):
     
-    def __init__(self, add_obstacles = False, add_visual_cue_object = False, intermediate_rewards = False,reward_left = True,
+    def __init__(self, visible_reward = True, add_obstacles = False, add_visual_cue_object = False, intermediate_rewards = False,reward_left = True,
                  probability_of_left = 0.5,latent_learning = False, add_visual_cue_image = False, left_arm = True, right_arm = True, **kwargs):
     
-        
+        self.visible_reward = visible_reward    
         self.latent_learning = latent_learning
         self.intermediate_rewards = intermediate_rewards
         self.add_obstacles = add_obstacles
@@ -57,8 +57,11 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
 
         self.connect_rooms(room_a= room1, room_b= room2, min_z= -1.37, max_z= 1.37)
 
-        if not self.latent_learning:
-            self.box = Box(color='red')
+        self.box = Box(color='red')
+
+        self.box.pos = [9,0, - 6.7]
+        if not self.latent_learning and self.visible_reward:
+
 
             self.key = Key(color= 'red')
             self.found_key = False
@@ -148,7 +151,7 @@ def main():
     args = parser.parse_args()
     view_mode = "top" if args.top_view else "agent"
 
-    env = gym.make(args.env_name, view=view_mode, render_mode="human")
+    env = gym.make(args.env_name, view=view_mode, render_mode="human", visible_reward = False)
     miniworld_version = miniworld.__version__
 
     print(f"Miniworld v{miniworld_version}, Env: {args.env_name}")
