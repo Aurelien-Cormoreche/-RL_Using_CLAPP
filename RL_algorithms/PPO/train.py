@@ -245,14 +245,7 @@ def update_agent(opt, num_updates, len_rollouts, num_envs, agent, agent_optimize
                 },
                 step= update + epoch * num_updates
                 
-            )
-
-    
-
-
-
-
-            
+            )        
 
 def compute_critic_loss(value_t, new_value_t, return_t, epsilon_clipping, clipping = True):
     

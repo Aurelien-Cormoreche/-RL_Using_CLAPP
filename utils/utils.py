@@ -31,7 +31,7 @@ def parsing():
     parser.add_argument('--checkpoint_interval', default= 50, type= int, help= 'interval at which to save the model weights')
 
     #hyperparameters for the training
-    parser.add_argument('--num_epochs', default= 1800, help= 'number of epochs for the training')
+    parser.add_argument('--num_epochs', default= 170, help= 'number of epochs for the training')
     parser.add_argument('--gamma', default= 0.995, help= 'gamma for training in the environment')    
         
     parser.add_argument('--actor_lr', default= 5e-3, help= 'learning rate for the actor if the algorithm is actor critic')
@@ -96,6 +96,7 @@ def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dic
         
             env = create_envs(opt,opt.num_envs)
             train(opt, env, model_path,device, models_dict)
+            mlflow.end_run()
             
 
 

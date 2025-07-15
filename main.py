@@ -20,7 +20,7 @@ from torchvision.models import resnet50, ResNet50_Weights
 
 import torch.nn as nn
 import numpy as np
-
+from torchsummary import summary
 import mlflow
 
 def train(opt, envs, model_path, device, models_dict):
@@ -43,7 +43,8 @@ def train(opt, envs, model_path, device, models_dict):
     
     encoder.to(device)
     encoder.compile(backend="aot_eager")
-
+    
+  
     for param in encoder.parameters():
         param.requires_grad = False
     
@@ -118,7 +119,7 @@ def main(args):
             
         ]
 
-        seeds = [1,5,10]
+        seeds = [5,10]
         launch_experiment(args, run_dicts, seeds,args.experiment_name, device, models_dict)
     else:
         envs = create_envs(args, args.num_envs)
