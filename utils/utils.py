@@ -67,7 +67,6 @@ def create_envs(args, num_envs):
     
     envs =gym.make_vec("MyTMaze", num_envs= num_envs,  
                        max_episode_steps= args.max_episode_steps, render_mode = 'human' if args.render else None, visible_reward = args.visible_reward)
-   
 
     if args.greyscale:
         envs = gym.wrappers.vector.GrayscaleObservation(envs)
@@ -91,12 +90,11 @@ def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dic
         else:
             print('not possible to assign seed')
         for run_dict in run_dicts:
-            env = create_envs(opt,1)
 
             for key in run_dict:
                 setattr(opt,key,run_dict[key])
-
-            create_envs(opt,1)
+        
+            env = create_envs(opt,opt.num_envs)
             train(opt, env, model_path,device, models_dict)
             
 

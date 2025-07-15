@@ -76,7 +76,7 @@ def train(opt, envs, model_path, device, models_dict):
 def main(args):
 
 
-    envs = create_envs(args, args.num_envs)
+   
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -104,20 +104,24 @@ def main(args):
     if args.experiment:
 
         run_dicts = [ 
-            { 'run_name' : 'try1',
-                'actor_lr' : 1e-5,
-                'critic_lr' : 1e-3 },
+            { 'run_name' : 'resnetTry',
+              'algorithm' : 'PPO',
+              'encoder' : 'resnet',
+              'greyscale' : False
+                },
                 {
-                'run_name' : 'try2',
-                'actor_lr' : 1e-5,
-                'critic_lr' : 1e-3                 
+                'run_name' : 'CLAPPTry',
+                'algorithm' : 'PPO',
+                'encoder' : 'CLAPP' ,
+                        
             }         
             
         ]
 
         seeds = [1,5,10]
-        launch_experiment(args, run_dicts, seeds, 'try', device, models_dict)
+        launch_experiment(args, run_dicts, seeds,args.experiment_name, device, models_dict)
     else:
+        envs = create_envs(args, args.num_envs)
         train(opt= args, envs= envs,model_path= model_path,device =device, models_dict= models_dict)
     
 if __name__ == '__main__':

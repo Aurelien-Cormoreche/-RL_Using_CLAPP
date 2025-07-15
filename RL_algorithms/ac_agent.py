@@ -16,7 +16,7 @@ class AC_Agent(nn.Module):
         self.critic = CriticModel(num_features, activation)
 
     def get_features(self, state, keep_patches = False):
-        return self.encoder(state, keep_patches) # a voir pour la dimension batch
+        return self.encoder(state) # a voir pour la dimension batch
     
     def get_value_from_features(self, features):
         return self.critic(features)

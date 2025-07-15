@@ -45,7 +45,8 @@ def train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, featur
     
     if opt.greyscale:
         states_t = torch.unsqueeze(states_t, dim= 1)
-    
+    else:
+        states_t = torch.reshape(states_t, (states_t.shape[0], states_t.shape[3], states_t.shape[1], states_t.shape[2]))
 
     is_next_observation_terminal_t = torch.zeros(num_envs, device= device)
 
@@ -91,7 +92,7 @@ def collect_rollouts(opt, envs, device, agent, len_rollouts, feature_dim, action
         batch_is_episode_terminated = torch.empty((len_rollouts, num_envs), device= device)
 
         states_t = n_states_t
-        features_t = agent.get_features(states_t, keep_patches = opt.keep_patches)
+        features_t = agent.get_features(states_t)
         is_next_observation_terminal_t = torch.zeros(num_envs, device= device)
 
         for step in range(len_rollouts):
@@ -130,8 +131,10 @@ def collect_rollouts(opt, envs, device, agent, len_rollouts, feature_dim, action
             states_t = torch.as_tensor(n_state, dtype= torch.float32, device= device)
             if opt.greyscale:
                 states_t = torch.unsqueeze(states_t, dim= 1)
+            else:
+                states_t = torch.reshape(states_t, (states_t.shape[0], states_t.shape[3], states_t.shape[1], states_t.shape[2]))
             
-            features_t = agent.get_features(states_t, keep_patches = opt.keep_patches)
+            features_t = agent.get_features(states_t)
 
             if opt.render:
                 envs.render()
