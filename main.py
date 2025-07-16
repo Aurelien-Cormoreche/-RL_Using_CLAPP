@@ -44,6 +44,7 @@ def train(opt, envs, model_path, device, models_dict):
     encoder.to(device)
     encoder.compile(backend="aot_eager")
     
+    #feature_dim = 4
   
     for param in encoder.parameters():
         param.requires_grad = False

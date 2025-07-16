@@ -10,13 +10,15 @@ class ActorModel(nn.Module):
         
 
         self.layer = Linear(num_features, num_actions)
-        self.softmax = Softmax(dim= 1)
+        self.softmax = Softmax(dim= -1)
         
     def forward(self, x, temp = None):
         if temp : 
             x = self.layer(x)/temp
         else:
            x = self.layer(x)
+
+
         x = self.softmax(x)
         return x
     

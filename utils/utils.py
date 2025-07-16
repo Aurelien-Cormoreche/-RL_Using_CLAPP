@@ -31,16 +31,16 @@ def parsing():
     parser.add_argument('--checkpoint_interval', default= 50, type= int, help= 'interval at which to save the model weights')
 
     #hyperparameters for the training
-    parser.add_argument('--num_epochs', default= 170, help= 'number of epochs for the training')
+    parser.add_argument('--num_epochs', default= 170, type= int, help= 'number of epochs for the training')
     parser.add_argument('--gamma', default= 0.995, help= 'gamma for training in the environment')    
         
-    parser.add_argument('--actor_lr', default= 5e-3, help= 'learning rate for the actor if the algorithm is actor critic')
-    parser.add_argument('--critic_lr', default= 1e-3, help= 'learning rate for the critic if the algorithm is actor critic')
-    parser.add_argument('--t_delay_theta', default= 0.9, help= 'delay for actor in case of eligibility trace')
-    parser.add_argument('--t_delay_w', default= 0.9, help= 'delay for the critic in case of eligibility trace')
+    parser.add_argument('--actor_lr', default= 1e-1, help= 'learning rate for the actor if the algorithm is actor critic')
+    parser.add_argument('--critic_lr', default= 5e-4, help= 'learning rate for the critic if the algorithm is actor critic')
+    parser.add_argument('--t_delay_theta', default= 0.95, help= 'delay for actor in case of eligibility trace')
+    parser.add_argument('--t_delay_w', default= 0.95, help= 'delay for the critic in case of eligibility trace')
 
-    parser.add_argument('--len_rollout', default= 1024, help= 'length of the continuous rollout')
-    parser.add_argument('--num_updates', default= 8, help= 'number of steps for the optimizer')
+    parser.add_argument('--len_rollout', default= 1024, type= int, help= 'length of the continuous rollout')
+    parser.add_argument('--num_updates', default= 8, type= int, help= 'number of steps for the optimizer')
     parser.add_argument('--minibatch_size', default= 256, help= 'define minibatch size for offline learning')
     parser.add_argument('--lr', default= 5e-5, help='Lr in case we need only one learning rate for our algorithm')
     parser.add_argument('--lambda_gae', default= 0.97, help='Lamda used when calculating the GAE')

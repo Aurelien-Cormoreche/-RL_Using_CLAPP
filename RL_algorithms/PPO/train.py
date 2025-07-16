@@ -222,9 +222,9 @@ def update_agent(opt, num_updates, len_rollouts, num_envs, agent, agent_optimize
 
             loss = loss_critic * opt.coeff_critic + loss_actor - loss_entropy * opt.coeff_entropy
 
-
             agent_optimizer.zero_grad()
             loss.backward()
+            
             if opt.grad_clipping:
                 nn.utils.clip_grad_norm_(agent.parameters(),opt.max_grad_norm)
             agent_optimizer.step()

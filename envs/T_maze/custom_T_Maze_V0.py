@@ -15,7 +15,7 @@ import gymnasium as gym
 class MyTmaze(MiniWorldEnv, utils.EzPickle):
     
     def __init__(self, visible_reward = True, add_obstacles = False, add_visual_cue_object = False, intermediate_rewards = False,reward_left = True,
-                 probability_of_left = 0.5,latent_learning = False, add_visual_cue_image = False, left_arm = True, right_arm = True, **kwargs):
+                 probability_of_left = 0.5,latent_learning = False, add_visual_cue_image = False, left_arm = True, right_arm = False, **kwargs):
     
         self.visible_reward = visible_reward    
         self.latent_learning = latent_learning
@@ -110,6 +110,15 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
                 )
 
             )
+
+    def reset(self, *, seed = None, options = None):
+        obs, info = super().reset(seed=seed, options=options)
+        info["goal_pos"] = self.box.pos
+        info['agent_pos'] = self.agent.pos
+        info['agent_dir'] = self.agent.dir
+
+        return obs, info
+        
             
     def _reward(self):
         return 1.0 - (self.step_count / self.max_episode_steps)
@@ -128,7 +137,8 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
            self.entities.remove(self.key)
 
         info["goal_pos"] = self.box.pos
-
+        info['agent_pos'] = self.agent.pos
+        info['agent_dir'] = self.agent.dir
         return obs, reward, termination, truncation, info
     
 

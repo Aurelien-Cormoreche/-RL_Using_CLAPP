@@ -42,6 +42,12 @@ class AC_Agent(nn.Module):
         dist = torch.distributions.Categorical(probs= probs)
 
         return dist.log_prob(action), dist.entropy()
+    
+    def get_action_and_log_prob_dist_from_features(self, features):
+        probs = self.get_probabilities_from_features(features)
+        dist = torch.distributions.Categorical(probs= probs)
+        action = dist.sample()
+        return action, dist.log_prob(action), dist
 
 
     
