@@ -34,7 +34,7 @@ def parsing():
     parser.add_argument('--num_epochs', default= 170, type= int, help= 'number of epochs for the training')
     parser.add_argument('--gamma', default= 0.995, help= 'gamma for training in the environment')    
         
-    parser.add_argument('--actor_lr', default= 1e-1, help= 'learning rate for the actor if the algorithm is actor critic')
+    parser.add_argument('--actor_lr', default= 1e-3, help= 'learning rate for the actor if the algorithm is actor critic')
     parser.add_argument('--critic_lr', default= 5e-4, help= 'learning rate for the critic if the algorithm is actor critic')
     parser.add_argument('--t_delay_theta', default= 0.95, help= 'delay for actor in case of eligibility trace')
     parser.add_argument('--t_delay_w', default= 0.95, help= 'delay for the critic in case of eligibility trace')

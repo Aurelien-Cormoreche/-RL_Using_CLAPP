@@ -69,17 +69,17 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
         agent_pos = torch.tensor(info['agent_pos'], dtype= torch.float32,device= device).squeeze()
         agent_dir = torch.tensor(info['agent_dir'], dtype=torch.float32,device= device)
 
-       # features = torch.cat((agent_dir, agent_pos))
+
      
         state = torch.tensor(state, device= device, dtype= torch.float32)
         if opt.greyscale:
             state = torch.unsqueeze(state, dim= 1)
     
-        
+
         features = encoder(state, keep_patches = opt.keep_patches)
         features = features.flatten()
+        
 
-       
        
         done = False
         total_reward = 0
@@ -94,6 +94,8 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
 
         while not done:
 
+
+
             action, logprob, dist = agent.get_action_and_log_prob_dist_from_features(features)
             value = agent.get_value_from_features(features)
 
@@ -102,13 +104,13 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             agent_pos = torch.tensor(info['agent_pos'], dtype= torch.float32,device= device).squeeze()
             agent_dir = torch.tensor(info['agent_dir'], dtype=torch.float32,device= device)
 
-            #features = torch.cat((agent_dir, agent_pos))
+
             
-         
+
             reward = reward[0]
             terminated = terminated[0]
             truncated = truncated[0]
-       
+            
             n_state_t = torch.tensor(n_state, device= device, dtype= torch.float32)
 
             if opt.greyscale:
@@ -116,19 +118,20 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
            
             features = agent.get_features(n_state_t).flatten()
      
-           
-            if target:
-                new_value = target_critic(features).detach() 
-            else:
-                new_value = agent.get_value_from_features(features)
+    
+            with torch.no_grad():
+                if target:
+                    new_value = target_critic(features).detach() 
+                else:
+                    new_value = agent.get_value_from_features(features)
 
-            if done or truncated:
-                delayed_value = reward
-            else:
-                delayed_value = reward + gamma * new_value
+                if done or truncated:
+                    delayed_value = reward
+                else:
+                    delayed_value = reward + gamma * new_value
 
-            advantage = delayed_value - value 
-            
+                advantage = delayed_value - value
+
             if opt.track_run:
                 mlflow.log_metric('values', value.detach().item(),step= int(step.item()))
                 mlflow.log_metric('advantage', advantage.detach().item(),step= int(step.item()))
@@ -167,7 +170,6 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             
         current_rewards += total_reward  
 
-
         if opt.track_run:
             mlflow.log_metrics(
                 {
@@ -203,8 +205,6 @@ def loss_actor(log_prob_t, past_log_prob_t, advantage_t, epsilon_clipping):
 def loss_critic(value_t, delayed_value_t):
     return 0.5 * (value_t - delayed_value_t) ** 2
 
-
-
 def update_a2c(tot_loss, optimizer):
     optimizer.zero_grad()
     tot_loss.backward()
@@ -216,28 +216,18 @@ def update_eligibility(z_w, z_theta, t_delay_w, t_delay_theta, gamma, I, value, 
     
     grad_values = torch.autograd.grad(value, critic.parameters())
     grad_policy = torch.autograd.grad(logprob, actor.parameters())
-
-
-
-
-
+    
     z_w = [gamma * t_delay_w * z + I * p for z, p in zip(z_w, grad_values)]
     z_theta = [gamma * t_delay_theta * z +  I * p for z, p in zip(z_theta, grad_policy)]
-
-    
 
     with torch.no_grad():
 
         for p, z in zip(critic.parameters(), z_w):
-            p  += lr_w * advantage.detach().squeeze() * z
+            p.add_(lr_w * advantage.squeeze() * z)
             
 
         for p, z in zip(actor.parameters(), z_theta):    
-            p  += lr_theta * advantage.detach().squeeze() * z
-            
-
-    actor.zero_grad()
-    critic.zero_grad()
+            p.add_(lr_theta * advantage.squeeze() * z)
 
     return z_theta, z_w
     
