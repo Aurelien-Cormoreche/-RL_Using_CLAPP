@@ -66,11 +66,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
     for epoch in tqdm.tqdm(range(opt.num_epochs)):
         
         state, info = env.reset(seed = opt.seed + epoch)
-        agent_pos = torch.tensor(info['agent_pos'], dtype= torch.float32,device= device).squeeze()
-        agent_dir = torch.tensor(info['agent_dir'], dtype=torch.float32,device= device)
 
-
-     
         state = torch.tensor(state, device= device, dtype= torch.float32)
         if opt.greyscale:
             state = torch.unsqueeze(state, dim= 1)
@@ -100,11 +96,6 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             value = agent.get_value_from_features(features)
 
             n_state, reward, terminated, truncated, info = env.step([action.detach().item()])
-
-            agent_pos = torch.tensor(info['agent_pos'], dtype= torch.float32,device= device).squeeze()
-            agent_dir = torch.tensor(info['agent_dir'], dtype=torch.float32,device= device)
-
-
             
 
             reward = reward[0]
@@ -132,7 +123,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
 
                 advantage = delayed_value - value
 
-            if opt.track_run:
+            if False and opt.track_run:
                 mlflow.log_metric('values', value.detach().item(),step= int(step.item()))
                 mlflow.log_metric('advantage', advantage.detach().item(),step= int(step.item()))
             
@@ -217,8 +208,8 @@ def update_eligibility(z_w, z_theta, t_delay_w, t_delay_theta, gamma, I, value, 
     grad_values = torch.autograd.grad(value, critic.parameters())
     grad_policy = torch.autograd.grad(logprob, actor.parameters())
     
-    z_w = [gamma * t_delay_w * z + I * p for z, p in zip(z_w, grad_values)]
-    z_theta = [gamma * t_delay_theta * z +  I * p for z, p in zip(z_theta, grad_policy)]
+    z_w = [gamma * t_delay_w * z +  p for z, p in zip(z_w, grad_values)]
+    z_theta = [gamma * t_delay_theta * z +   p for z, p in zip(z_theta, grad_policy)]
 
     with torch.no_grad():
 
