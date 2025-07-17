@@ -42,8 +42,8 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
         return super().turn_agent(turn_angle)
     
     def move_agent(self, fwd_dist, fwd_drift):
-        self.max_forward_step = 3 * 0.15
-        fwd_dist = 3 * 0.15
+        self.max_forward_step = 9 * 0.15
+        fwd_dist = 9 * 0.15
         return super().move_agent(fwd_dist, fwd_drift)
 
     
