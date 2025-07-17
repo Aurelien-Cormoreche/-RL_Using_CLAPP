@@ -33,7 +33,10 @@ def parsing():
     #hyperparameters for the training
     parser.add_argument('--num_epochs', default= 170, type= int, help= 'number of epochs for the training')
     parser.add_argument('--gamma', default= 0.995, help= 'gamma for training in the environment')    
-        
+    parser.add_argument('--nb_stacked_frames', default= 1, type= int, help= 'number of stacked frames given as input')
+    parser.add_argument('--frame_skip', default= 1, type= int, help= 'number of frames to skip')
+
+
     parser.add_argument('--actor_lr', default= 1e-3, help= 'learning rate for the actor if the algorithm is actor critic')
     parser.add_argument('--critic_lr', default= 5e-3, help= 'learning rate for the critic if the algorithm is actor critic')
     parser.add_argument('--t_delay_theta', default= 0.7, help= 'delay for actor in case of eligibility trace')

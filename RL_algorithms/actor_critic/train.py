@@ -13,11 +13,13 @@ from ..models import CriticModel
 
 from utils.utils import save_models
 
+from collections import deque
+
 def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, feature_dim, tau = 0.05):
 
     assert env.num_envs == 1
 
-
+    memory = deque([], maxlen= opt.nb_stacked_frames)
     if opt.track_run:
             mlflow.log_params(
                 {
