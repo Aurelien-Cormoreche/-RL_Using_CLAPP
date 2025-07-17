@@ -18,8 +18,7 @@ from collections import deque
 def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, feature_dim, tau = 0.05):
 
     assert env.num_envs == 1
-
-    memory = deque([], maxlen= opt.nb_stacked_frames)
+    
     if opt.track_run:
             mlflow.log_params(
                 {
@@ -97,7 +96,10 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             action, logprob, dist = agent.get_action_and_log_prob_dist_from_features(features)
             value = agent.get_value_from_features(features)
 
-            n_state, reward, terminated, truncated, info = env.step([action.detach().item()])
+            for _ in range(opt.frame_skip):
+                n_state, reward, terminated, truncated, info = env.step([action.detach().item()])
+                if terminated or truncated:
+                    break
             
 
             reward = reward[0]

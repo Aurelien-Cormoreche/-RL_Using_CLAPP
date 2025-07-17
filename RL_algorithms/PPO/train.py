@@ -113,6 +113,7 @@ def collect_rollouts(opt, envs, device, agent, len_rollouts, feature_dim, action
 
             batch_values[step] = values_t
 
+
             n_state, rewards, terminated, truncated, _ = envs.step(actions_t.cpu().numpy())
 
             batch_rewards[step] = torch.as_tensor(rewards,dtype= torch.float32, device= device)
@@ -224,7 +225,7 @@ def update_agent(opt, num_updates, len_rollouts, num_envs, agent, agent_optimize
 
             agent_optimizer.zero_grad()
             loss.backward()
-            
+
             if opt.grad_clipping:
                 nn.utils.clip_grad_norm_(agent.parameters(),opt.max_grad_norm)
             agent_optimizer.step()
