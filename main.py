@@ -43,8 +43,7 @@ def train(opt, envs, model_path, device, models_dict):
     
 
     encoder = encoder.to(device)
-    encoder = encoder.half()
-    encoder = encoder.compile(backend="aot_eager")
+    encoder.compile(backend="aot_eager")
 
     
     for param in encoder.parameters():

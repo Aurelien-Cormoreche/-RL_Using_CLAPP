@@ -15,7 +15,7 @@ from ..exploration_modules import ICM, update_ICM_predictor
 from utils.utils import save_models
 from utils.utils_data_structures import TorchDeque
 
-
+import time
 
 def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, feature_dim, tau = 0.05):
 
@@ -80,7 +80,6 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
         if opt.greyscale:
             state = torch.unsqueeze(state, dim= 1)
     
-
         features = encoder(state, keep_patches = opt.keep_patches)
         features = features.flatten()
 
@@ -121,15 +120,17 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             if opt.greyscale:
                 n_state_t = torch.unsqueeze(n_state_t, dim= 1)
 
-            if opt.use_ICM:
-                predicted, _ = icm(features, None, action)
+            old_features = features
 
             features = agent.get_features(n_state_t).flatten()
             memory.push(features)
 
             if opt.use_ICM:
+                predicted, _ = icm(old_features,None, action)
                 reward += opt.alpha_intrinsic_reward * update_ICM_predictor(predicted, features, icm_optimizer)
-                print(reward)
+                for _ in range(opt.num_updates_ICM - 1):
+                    update_ICM_predictor(icm(old_features,None,action)[0], features, icm_optimizer)
+               
 
             with torch.no_grad():
                 if target:
