@@ -20,7 +20,7 @@ from torchvision.models import resnet50, ResNet50_Weights
 
 import torch.nn as nn
 import numpy as np
-
+from torchsummary import summary
 import mlflow
 
 def train(opt, envs, model_path, device, models_dict):
@@ -41,51 +41,37 @@ def train(opt, envs, model_path, device, models_dict):
         print('no available encoder matched the argument')
         return
     
-    encoder.to(device)
+
+    encoder = encoder.to(device)
     encoder.compile(backend="aot_eager")
 
+    
     for param in encoder.parameters():
         param.requires_grad = False
     
     action_dim = envs.single_action_space.n
+    feature_dim = feature_dim * opt.nb_stacked_frames
 
-    if opt.algorithm.startswith("actor_critic"):
-        if opt.track_run:
-            mlflow.start_run(run_name= opt.run_name)
-            mlflow.log_params(
+
+    if opt.track_run:
+        mlflow.start_run(run_name= opt.run_name)
+        mlflow.log_params(
                 {
+                    'algorithm' : opt.algorithm,
                     'num_envs' : opt.num_envs,
                     'greyscale' : opt.greyscale,
-                    'lr1': opt.actor_lr,
-                    'lr2': opt.critic_lr,
                     'encoder': opt.encoder,
                     'num_epochs': opt.num_epochs,
                     'gamma': gamma,
                     'keep_patches' : opt.keep_patches, 
-                    'seed' : opt.seed                   
+                    'seed' : opt.seed,
+                    'visible_reward' : opt.visible_reward                
                 }
         )
+
+    if opt.algorithm.startswith("actor_critic"):
         train_actor_critic(opt, envs, device, encoder, gamma, models_dict, True , action_dim,feature_dim)
     else:
-        if opt.track_run:
-            mlflow.start_run(run_name= opt.run_name)
-            mlflow.log_params(
-                {
-                    'num_envs' : opt.num_envs,
-                    'greyscale' : opt.greyscale,
-                    'lr' : opt.lr,
-                    'encoder': opt.encoder,
-                    'num_epochs': opt.num_epochs,
-                    'gamma': gamma,
-                    'lamda_GAE' : opt.lambda_gae,
-                    'keep_patches' : opt.keep_patches,
-                    'len_rollout' : opt.len_rollout,
-                    'num_updates' : opt.num_updates,
-                    'seed' : opt.seed
-
-                }
-        )
-            
         train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, feature_dim)
     envs.close()
  
@@ -94,7 +80,7 @@ def train(opt, envs, model_path, device, models_dict):
 def main(args):
 
 
-    envs = create_envs(args, args.num_envs)
+   
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -122,20 +108,24 @@ def main(args):
     if args.experiment:
 
         run_dicts = [ 
-            { 'run_name' : 'try1',
-                'actor_lr' : 1e-5,
-                'critic_lr' : 1e-3 },
+            { 'run_name' : 'resnetTry',
+              'algorithm' : 'PPO',
+              'encoder' : 'resnet',
+              'greyscale' : False
+                },
                 {
-                'run_name' : 'try2',
-                'actor_lr' : 1e-5,
-                'critic_lr' : 1e-3                 
+                'run_name' : 'CLAPPTry',
+                'algorithm' : 'PPO',
+                'encoder' : 'CLAPP' ,
+                        
             }         
             
         ]
 
-        seeds = [1,5,10]
-        launch_experiment(args, run_dicts, seeds, 'try', device, models_dict)
+        seeds = [5,10]
+        launch_experiment(args, run_dicts, seeds,args.experiment_name, device, models_dict)
     else:
+        envs = create_envs(args, args.num_envs)
         train(opt= args, envs= envs,model_path= model_path,device =device, models_dict= models_dict)
     
 if __name__ == '__main__':

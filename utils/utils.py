@@ -21,35 +21,42 @@ def parsing():
     parser.add_argument('--greyscale', action= 'store_true', help = 'determine if we keep render the state in greyscale')
     parser.add_argument('--render', action= 'store_true', help= 'will render the maze')
     parser.add_argument('--num_envs', type= int ,default= 8, help= 'the number of synchronous environment to spawn')
-
+    parser.add_argument('--visible_reward', action= 'store_true', help= 'If the reward is a visible red box or not')
+    parser.add_argument('--max_episode_steps', default= 1000, help= 'max number of steps per environment')
     #arguments for the training
     parser.add_argument('--algorithm',default= 'actor_critic', help= 'type of RL algorithm to use')
     parser.add_argument('--encoder', default= "CLAPP", help="decide which encoder to use")
+    parser.add_argument('--keep_patches', action= 'store_true', help= 'keep the patches for the encoder')
     parser.add_argument('--seed', default= 0, type= int, help= 'manual seed for training')
     parser.add_argument('--checkpoint_interval', default= 50, type= int, help= 'interval at which to save the model weights')
 
-
     #hyperparameters for the training
-    parser.add_argument('--num_epochs', default= 1800, help= 'number of epochs for the training')
-    parser.add_argument('--len_rollout', default= 1024, help= 'length of the continuous rollout')
-    parser.add_argument('--num_updates', default= 16, help= 'number of steps for the optimizer')
-    parser.add_argument('--minibatch_size', default= 64, help= 'define minibatch size for offline learning')
-    parser.add_argument('--actor_lr', default= 5e-3, help= 'learning rate for the actor if the algorithm is actor critic')
-    parser.add_argument('--critic_lr', default= 1e-3, help= 'learning rate for the critic if the algorithm is actor critic')
-    parser.add_argument('--max_episode_steps', default= 800, help= 'max number of steps per environment')
-    parser.add_argument('--gamma', default= 0.999, help= 'gamma for training in the environment')
-    parser.add_argument('--t_delay_theta', default= 0.9, help= 'delay for actor in case of eligibility trace')
-    parser.add_argument('--t_delay_w', default= 0.9, help= 'delay for the critic in case of eligibility trace')
-    parser.add_argument('--keep_patches', action= 'store_true', help= 'keep the patches for the encoder')
-    parser.add_argument('--lr', default= 5e-4, help='Lr in case we need only one learning rate for our algorithm')
-    parser.add_argument('--lambda_gae', default= 0.9, help='Lamda used when calculating the GAE')
+    parser.add_argument('--num_epochs', default= 170, type= int, help= 'number of epochs for the training')
+    parser.add_argument('--gamma', default= 0.995, help= 'gamma for training in the environment')    
+    parser.add_argument('--nb_stacked_frames', default= 1, type= int, help= 'number of stacked frames given as input')
+    parser.add_argument('--frame_skip', default= 1, type= int, help= 'number of frames to skip')
+    parser.add_argument('--use_ICM', action= 'store_true', help= 'wether to use intrisic curiosity module or not')
+    parser.add_argument('--icm_lr', default= 1e-3, type= float, help= 'learning rate for the models of the ICM')
+    parser.add_argument('--alpha_intrinsic_reward', default= 1e-2, type= float, help= 'intrisic reward coefficient')
+    parser.add_argument('--num_updates_ICM', default= 5, type= int, help= 'number of updates for the ICM models')
+
+    parser.add_argument('--actor_lr', default= 1e-3, help= 'learning rate for the actor if the algorithm is actor critic')
+    parser.add_argument('--critic_lr', default= 5e-3, help= 'learning rate for the critic if the algorithm is actor critic')
+    parser.add_argument('--t_delay_theta', default= 0.7, help= 'delay for actor in case of eligibility trace')
+    parser.add_argument('--t_delay_w', default= 0.7, help= 'delay for the critic in case of eligibility trace')
+
+    parser.add_argument('--len_rollout', default= 1024, type= int, help= 'length of the continuous rollout')
+    parser.add_argument('--num_updates', default= 8, type= int, help= 'number of steps for the optimizer')
+    parser.add_argument('--minibatch_size', default= 256, help= 'define minibatch size for offline learning')
+    parser.add_argument('--lr', default= 5e-5, help='Lr in case we need only one learning rate for our algorithm')
+    parser.add_argument('--lambda_gae', default= 0.97, help='Lamda used when calculating the GAE')
     parser.add_argument('--not_normalize_advantages', action= 'store_false', help= 'normalize the advantages of each minibatch')
-    parser.add_argument('--critic_eps', default= 0.3, help= 'the epsilon for clipping the critic updates' )
-    parser.add_argument('--actor_eps', default= 0.3, help= 'the epsilon for clipping the actor updates' )
+    parser.add_argument('--critic_eps', default= 0.25, help= 'the epsilon for clipping the critic updates' )
+    parser.add_argument('--actor_eps', default= 0.25, help= 'the epsilon for clipping the actor updates' )
     parser.add_argument('--coeff_critic', default= 0.5, help= 'coefficient of the critic in the PPO general loss' )
-    parser.add_argument('--coeff_entropy', default= 0.01, help= 'coefficient of the entropy in the PPO general loss' )
+    parser.add_argument('--coeff_entropy', default= 0.0005, help= 'coefficient of the entropy in the PPO general loss' )
     parser.add_argument('--grad_clipping', action= 'store_true', help= 'do we need to clip the gradients' )
-    
+
     #MlFlow parameters
     parser.add_argument('--track_run', action= 'store_true', help= 'track the training run with mlflow')
     parser.add_argument('--experiment_name', default= 'actor_critic_tMaze_default', help='name of experiment on mlFlow')
@@ -65,8 +72,7 @@ def create_envs(args, num_envs):
     )
     
     envs =gym.make_vec("MyTMaze", num_envs= num_envs,  
-                       max_episode_steps= args.max_episode_steps, render_mode = 'human' if args.render else None)
-   
+                       max_episode_steps= args.max_episode_steps, render_mode = 'human' if args.render else None, visible_reward = args.visible_reward)
 
     if args.greyscale:
         envs = gym.wrappers.vector.GrayscaleObservation(envs)
@@ -90,13 +96,13 @@ def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dic
         else:
             print('not possible to assign seed')
         for run_dict in run_dicts:
-            env = create_envs(opt,1)
 
             for key in run_dict:
                 setattr(opt,key,run_dict[key])
-
-            create_envs(opt,1)
+        
+            env = create_envs(opt,opt.num_envs)
             train(opt, env, model_path,device, models_dict)
+            mlflow.end_run()
             
 
 

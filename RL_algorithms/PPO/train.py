@@ -10,9 +10,29 @@ from ..ac_agent import AC_Agent
 from utils.utils import save_models
 def train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, feature_dim):
 
+    if opt.track_run :
+        mlflow.log_params(
+            {
+                'lr' : opt.lr,                    
+                'num_epochs': opt.num_epochs,
+                'gamma': gamma,
+                'lamda_GAE' : opt.lambda_gae,
+                'len_rollout' : opt.len_rollout,
+                'num_updates' : opt.num_updates,
+                'minibatch_size' : opt.minibatch_size,
+                'not_normalize_advantages' : opt.not_normalize_advantages,
+                'critic_eps' : opt.critic_eps,
+                'actor_eps' : opt.actor_eps,
+                'coeff_critic' : opt.coeff_critic,
+                'coeff_entropy' : opt.coeff_entropy,
+                'grad_clipping' : opt.grad_clipping
+                }
+        )
+            
+
     num_envs = opt.num_envs
     
-    agent = AC_Agent(feature_dim, action_dim, 'LeakyReLU', encoder).to(device)
+    agent = AC_Agent(feature_dim, action_dim, None, encoder).to(device)
 
     optimizer = torch.optim.AdamW(agent.parameters(), lr = opt.lr)
 
@@ -25,7 +45,8 @@ def train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, featur
     
     if opt.greyscale:
         states_t = torch.unsqueeze(states_t, dim= 1)
-    
+    else:
+        states_t = torch.reshape(states_t, (states_t.shape[0], states_t.shape[3], states_t.shape[1], states_t.shape[2]))
 
     is_next_observation_terminal_t = torch.zeros(num_envs, device= device)
 
@@ -71,7 +92,7 @@ def collect_rollouts(opt, envs, device, agent, len_rollouts, feature_dim, action
         batch_is_episode_terminated = torch.empty((len_rollouts, num_envs), device= device)
 
         states_t = n_states_t
-        features_t = agent.get_features(states_t, keep_patches = opt.keep_patches)
+        features_t = agent.get_features(states_t)
         is_next_observation_terminal_t = torch.zeros(num_envs, device= device)
 
         for step in range(len_rollouts):
@@ -92,6 +113,7 @@ def collect_rollouts(opt, envs, device, agent, len_rollouts, feature_dim, action
 
             batch_values[step] = values_t
 
+
             n_state, rewards, terminated, truncated, _ = envs.step(actions_t.cpu().numpy())
 
             batch_rewards[step] = torch.as_tensor(rewards,dtype= torch.float32, device= device)
@@ -110,8 +132,10 @@ def collect_rollouts(opt, envs, device, agent, len_rollouts, feature_dim, action
             states_t = torch.as_tensor(n_state, dtype= torch.float32, device= device)
             if opt.greyscale:
                 states_t = torch.unsqueeze(states_t, dim= 1)
+            else:
+                states_t = torch.reshape(states_t, (states_t.shape[0], states_t.shape[3], states_t.shape[1], states_t.shape[2]))
             
-            features_t = agent.get_features(states_t, keep_patches = opt.keep_patches)
+            features_t = agent.get_features(states_t)
 
             if opt.render:
                 envs.render()
@@ -199,9 +223,9 @@ def update_agent(opt, num_updates, len_rollouts, num_envs, agent, agent_optimize
 
             loss = loss_critic * opt.coeff_critic + loss_actor - loss_entropy * opt.coeff_entropy
 
-
             agent_optimizer.zero_grad()
             loss.backward()
+
             if opt.grad_clipping:
                 nn.utils.clip_grad_norm_(agent.parameters(),opt.max_grad_norm)
             agent_optimizer.step()
@@ -222,14 +246,7 @@ def update_agent(opt, num_updates, len_rollouts, num_envs, agent, agent_optimize
                 },
                 step= update + epoch * num_updates
                 
-            )
-
-    
-
-
-
-
-            
+            )        
 
 def compute_critic_loss(value_t, new_value_t, return_t, epsilon_clipping, clipping = True):
     

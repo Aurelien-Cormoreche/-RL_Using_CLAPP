@@ -14,10 +14,10 @@ import gymnasium as gym
 
 class MyTmaze(MiniWorldEnv, utils.EzPickle):
     
-    def __init__(self, add_obstacles = False, add_visual_cue_object = False, intermediate_rewards = False,reward_left = True,
+    def __init__(self, visible_reward = True, add_obstacles = False, add_visual_cue_object = False, intermediate_rewards = False,reward_left = True,
                  probability_of_left = 0.5,latent_learning = False, add_visual_cue_image = False, left_arm = True, right_arm = True, **kwargs):
     
-        
+        self.visible_reward = visible_reward    
         self.latent_learning = latent_learning
         self.intermediate_rewards = intermediate_rewards
         self.add_obstacles = add_obstacles
@@ -27,6 +27,8 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
         self.probability_of_left = probability_of_left
         self.left_arm = left_arm
         self.right_arm = right_arm
+
+      
         
         if self.add_obstacles:
             self.num_obstacles = 3
@@ -34,16 +36,14 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
         
         MiniWorldEnv.__init__(self, **kwargs)
         utils.EzPickle.__init__(self, **kwargs)
-        
+
         self.action_space = spaces.Discrete(self.actions.move_forward + 1)
         
-    def turn_agent(self, turn_angle):
-        turn_angle *= 3
-        return super().turn_agent(turn_angle)
     
     def move_agent(self, fwd_dist, fwd_drift):
-        self.max_forward_step = 3 * 0.15
-        fwd_dist = 3 * 0.15
+        
+        fwd_dist = 3 * 0.15 
+       
         return super().move_agent(fwd_dist, fwd_drift)
 
     
@@ -55,10 +55,15 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
         room1 = self.add_rect_room(min_x=-0.22, max_x=8, min_z=-1.37, max_z=1.37, wall_tex="picket_fence",)
         room2 = self.add_rect_room(min_x=8, max_x=10.74, min_z= min_z_room2, max_z= max_z_room2, wall_tex="picket_fence")
 
+        
+
         self.connect_rooms(room_a= room1, room_b= room2, min_z= -1.37, max_z= 1.37)
 
-        if not self.latent_learning:
-            self.box = Box(color='red')
+        self.box = Box(color='red')
+
+        self.box.pos = [9.2,0, - 6.7]
+        if not self.latent_learning and self.visible_reward:
+
 
             self.key = Key(color= 'red')
             self.found_key = False
@@ -82,7 +87,6 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
                     ent = MeshEnt(mesh_name= 'barrel.obj',height= 1)
                     )
                 
-        
         self.agent.radius = 0.25
         self.place_agent(room= room1,dir=self.np_random.uniform(-math.pi / 4, math.pi / 4))
         
@@ -107,8 +111,18 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
                 )
 
             )
+
+    def reset(self, *, seed = None, options = None):
+        obs, info = super().reset(seed=seed, options=options)
+        info["goal_pos"] = self.box.pos
+        info['agent_pos'] = (self.agent.pos - [5.26,0  ,0 ])/[10.96,13.7 ,1]
+        info['agent_dir'] = self.agent.dir/360
+
+        return obs, info
+        
             
- 
+    def _reward(self):
+        return 1.0 - (self.step_count / self.max_episode_steps)
 
     def step(self, action):
         obs, reward, termination, truncation, info = super().step(action)
@@ -124,7 +138,8 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
            self.entities.remove(self.key)
 
         info["goal_pos"] = self.box.pos
-
+        info['agent_pos'] = (self.agent.pos - [5.26,0  ,0 ])/[10.96,13.7 ,1]
+        info['agent_dir'] = (self.agent.dir % (math.pi * 2))/(math.pi * 2)
         return obs, reward, termination, truncation, info
     
 
@@ -148,7 +163,7 @@ def main():
     args = parser.parse_args()
     view_mode = "top" if args.top_view else "agent"
 
-    env = gym.make(args.env_name, view=view_mode, render_mode="human")
+    env = gym.make(args.env_name, view=view_mode, render_mode="human", visible_reward = False)
     miniworld_version = miniworld.__version__
 
     print(f"Miniworld v{miniworld_version}, Env: {args.env_name}")
