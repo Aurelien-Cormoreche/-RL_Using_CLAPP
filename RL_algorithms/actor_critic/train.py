@@ -10,6 +10,7 @@ import gymnasium as gym
 
 from ..ac_agent import AC_Agent
 from ..models import CriticModel
+from ..exploration_modules import ICM, update_ICM_predictor
 
 from utils.utils import save_models
 from utils.utils_data_structures import TorchDeque
@@ -43,6 +44,12 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
         eligibility_traces = False
   
     agent = AC_Agent(feature_dim, action_dim,None, encoder).to(device)
+    
+    
+    if opt.use_ICM:
+        icm = ICM(action_dim, feature_dim, False, feature_dim)
+        icm_optimizer =  torch.optim.AdamW(icm.parameters(), lr = opt.icm_lr)
+
 
     actor = agent.actor
     critic = agent.critic
@@ -103,6 +110,20 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
                 n_state, reward, terminated, truncated, info = env.step([action.detach().item()])
                 length_episode += 1
 
+                n_state_t = torch.tensor(n_state, device= device, dtype= torch.float32)
+
+                if opt.greyscale:
+                    n_state_t = torch.unsqueeze(n_state_t, dim= 1)
+
+                if opt.use_ICM:
+                    predicted, _ = icm(features, None, action)
+
+                features = agent.get_features(n_state_t).flatten()
+                memory.push(features)
+
+                if opt.use_ICM:
+                    update_ICM_predictor(predicted, features, icm_optimizer)
+
                 if terminated or truncated:
                     break
             
@@ -111,13 +132,6 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             terminated = terminated[0]
             truncated = truncated[0]
             
-            n_state_t = torch.tensor(n_state, device= device, dtype= torch.float32)
-
-            if opt.greyscale:
-                n_state_t = torch.unsqueeze(n_state_t, dim= 1)
-           
-            features = agent.get_features(n_state_t).flatten()
-            memory.push(features)
 
             with torch.no_grad():
                 if target:

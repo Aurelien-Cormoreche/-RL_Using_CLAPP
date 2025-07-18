@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 from models import Predictor_Model
 from torch.nn import Identity
+
+
 class ICM(nn.Module):
 
     def __init__(self,  action_dim, features_dim, with_encoder ,encoded_features_dim,args, **kwargs):
@@ -28,6 +30,14 @@ class ICM(nn.Module):
 
 
         
+
+def update_ICM_predictor(predicted, real, icm_optimizer):
+    criterion = nn.SmoothL1Loss()
+    loss = criterion(predicted, real)
+    icm_optimizer.zero_grad()
+    loss.backward()
+    icm_optimizer.step()
+
 
 
 
