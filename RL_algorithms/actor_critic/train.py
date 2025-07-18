@@ -12,8 +12,9 @@ from ..ac_agent import AC_Agent
 from ..models import CriticModel
 
 from utils.utils import save_models
+from utils.utils_data_structures import TorchDeque
 
-from collections import deque
+
 
 def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, feature_dim, tau = 0.05):
 
@@ -40,7 +41,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
     else:
         print("not using eligibility traces")
         eligibility_traces = False
-    
+  
     agent = AC_Agent(feature_dim, action_dim,None, encoder).to(device)
 
     actor = agent.actor
@@ -75,9 +76,12 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
 
         features = encoder(state, keep_patches = opt.keep_patches)
         features = features.flatten()
-        
 
-       
+      
+
+        memory = TorchDeque(maxlen= opt.nb_stacked_frames, num_features= feature_dim, device= device, dtype= torch.float32)
+        memory.fill(features)
+        
         done = False
         total_reward = 0
         length_episode = 0
@@ -90,14 +94,15 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             I = 1
 
         while not done:
-
-
-
-            action, logprob, dist = agent.get_action_and_log_prob_dist_from_features(features)
-            value = agent.get_value_from_features(features)
+         
+            
+            action, logprob, dist = agent.get_action_and_log_prob_dist_from_features(memory.get_all_content_as_tensor())
+            value = agent.get_value_from_features(memory.get_all_content_as_tensor())
 
             for _ in range(opt.frame_skip):
                 n_state, reward, terminated, truncated, info = env.step([action.detach().item()])
+                length_episode += 1
+
                 if terminated or truncated:
                     break
             
@@ -112,25 +117,20 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
                 n_state_t = torch.unsqueeze(n_state_t, dim= 1)
            
             features = agent.get_features(n_state_t).flatten()
-     
-    
+            memory.push(features)
+
             with torch.no_grad():
                 if target:
-                    new_value = target_critic(features).detach() 
+                    new_value = target_critic(memory.get_all_content_as_tensor()).detach() 
                 else:
-                    new_value = agent.get_value_from_features(features)
+                    new_value = agent.get_value_from_features(memory.get_all_content_as_tensor())
 
-                if done or truncated:
+                if terminated or truncated:
                     delayed_value = reward
                 else:
                     delayed_value = reward + gamma * new_value
 
                 advantage = delayed_value - value
-
-            if False and opt.track_run:
-                mlflow.log_metric('values', value.detach().item(),step= int(step.item()))
-                mlflow.log_metric('advantage', advantage.detach().item(),step= int(step.item()))
-            
 
             if not eligibility_traces:
 
@@ -151,7 +151,6 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             
             state = n_state_t
             total_reward += reward
-            length_episode += 1
             step += 1
             done= terminated or truncated
 

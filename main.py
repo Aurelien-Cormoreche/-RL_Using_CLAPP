@@ -50,6 +50,7 @@ def train(opt, envs, model_path, device, models_dict):
     
     action_dim = envs.single_action_space.n
     feature_dim = feature_dim * opt.nb_stacked_frames
+    
 
     if opt.track_run:
         mlflow.start_run(run_name= opt.run_name)
