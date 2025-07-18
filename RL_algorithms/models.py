@@ -7,7 +7,7 @@ from torch.nn import Linear, ReLU, GELU, LeakyReLU, Softmax, Tanh, Identity
 class ActorModel(nn.Module):
     def __init__(self, num_features, num_actions,*args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         self.layer = Linear(num_features, num_actions)
         self.softmax = Softmax(dim= -1)
         
@@ -56,7 +56,7 @@ class Predictor_Model(nn.Module):
         self.layer = Linear(action_dim + encoded_features_dim, encoded_features_dim)
 
     def forward(self,encoded_features, action):
-        return self.layer(torch.cat((encoded_features,action), dim= -2))
+        return self.layer(torch.cat((encoded_features,action), dim= -1))
     
 
 

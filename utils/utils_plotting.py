@@ -24,8 +24,8 @@ if __name__ == '__main__':
 
         #plt.plot(mv_avg_CLAPP)
         #plt.plot(mv_avg_Resnet)
-        #plt.plot(mv_avg_a2c)
+        plt.plot(mv_avg_a2c_fs)
        
-        plt.plot(mv_avg_a2c_fs_mf)
+        #plt.plot(mv_avg_a2c_fs_mf)
         plt.plot(mv_avg_a2c_fs_mf_2)
         plt.show()

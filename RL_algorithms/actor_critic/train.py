@@ -47,7 +47,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
     
     
     if opt.use_ICM:
-        icm = ICM(action_dim, feature_dim, False, feature_dim)
+        icm = ICM(action_dim, feature_dim, False, feature_dim).to(device)
         icm_optimizer =  torch.optim.AdamW(icm.parameters(), lr = opt.icm_lr)
 
 
@@ -84,8 +84,6 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
         features = encoder(state, keep_patches = opt.keep_patches)
         features = features.flatten()
 
-      
-
         memory = TorchDeque(maxlen= opt.nb_stacked_frames, num_features= feature_dim, device= device, dtype= torch.float32)
         memory.fill(features)
         
@@ -110,20 +108,6 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
                 n_state, reward, terminated, truncated, info = env.step([action.detach().item()])
                 length_episode += 1
 
-                n_state_t = torch.tensor(n_state, device= device, dtype= torch.float32)
-
-                if opt.greyscale:
-                    n_state_t = torch.unsqueeze(n_state_t, dim= 1)
-
-                if opt.use_ICM:
-                    predicted, _ = icm(features, None, action)
-
-                features = agent.get_features(n_state_t).flatten()
-                memory.push(features)
-
-                if opt.use_ICM:
-                    update_ICM_predictor(predicted, features, icm_optimizer)
-
                 if terminated or truncated:
                     break
             
@@ -132,6 +116,20 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             terminated = terminated[0]
             truncated = truncated[0]
             
+            n_state_t = torch.tensor(n_state, device= device, dtype= torch.float32)
+
+            if opt.greyscale:
+                n_state_t = torch.unsqueeze(n_state_t, dim= 1)
+
+            if opt.use_ICM:
+                predicted, _ = icm(features, None, action)
+
+            features = agent.get_features(n_state_t).flatten()
+            memory.push(features)
+
+            if opt.use_ICM:
+                reward += opt.alpha_intrinsic_reward * update_ICM_predictor(predicted, features, icm_optimizer)
+                print(reward)
 
             with torch.no_grad():
                 if target:
