@@ -1,5 +1,5 @@
 import torch
-
+from torch.optim.lr_scheduler import SequentialLR, CosineAnnealingLR, LinearLR
 class TorchDeque:
 
     def __init__(self, maxlen, num_features,dtype, device):
@@ -36,11 +36,16 @@ class TorchDeque:
         return self.size
     
 
-    
-    
-    
+class CosineAnnealingWarmupLr(SequentialLR):
 
-    
+    def __init__(self, optimizer, warmup_steps, total_steps, start_factor=1e-3, last_epoch=-1, eta_min = 1e-5):
+        
+        self.warmup = LinearLR(optimizer, start_factor, warmup_steps)
+
+        self.cosineAnnealing = CosineAnnealingLR(optimizer, T_max= total_steps - warmup_steps, eta_min = eta_min)
+
+        super().__init__(optimizer, [self.warmup, self.cosineAnnealing], [warmup_steps], last_epoch)
+
 
         
 

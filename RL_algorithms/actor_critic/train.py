@@ -13,7 +13,7 @@ from ..models import CriticModel
 from ..exploration_modules import ICM, update_ICM_predictor
 
 from utils.utils import save_models
-from utils.utils_data_structures import TorchDeque
+from utils.utils_torch import TorchDeque
 
 import time
 
@@ -170,6 +170,8 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             if epoch % opt.checkpoint_interval == 0:
                 models_dict['actor'] = actor.state_dict()
                 models_dict['critic'] = critic.state_dict()
+                if opt.use_ICM:
+                    models_dict['icm_predictor'] = icm.predictor_model.state_dict()
                 save_models(models_dict)
 
             if opt.render:

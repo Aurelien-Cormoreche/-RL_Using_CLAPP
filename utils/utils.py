@@ -39,9 +39,10 @@ def parsing():
     parser.add_argument('--icm_lr', default= 1e-3, type= float, help= 'learning rate for the models of the ICM')
     parser.add_argument('--alpha_intrinsic_reward', default= 1e-2, type= float, help= 'intrisic reward coefficient')
     parser.add_argument('--num_updates_ICM', default= 5, type= int, help= 'number of updates for the ICM models')
+    parser.add_argument('--lr_scheduler', action= 'store_true', help= 'add a lr scheduler')
 
-    parser.add_argument('--actor_lr', default= 1e-3, help= 'learning rate for the actor if the algorithm is actor critic')
-    parser.add_argument('--critic_lr', default= 5e-3, help= 'learning rate for the critic if the algorithm is actor critic')
+    parser.add_argument('--actor_lr', default= 1e-2, help= 'learning rate for the actor if the algorithm is actor critic')
+    parser.add_argument('--critic_lr', default= 5e-2, help= 'learning rate for the critic if the algorithm is actor critic')
     parser.add_argument('--t_delay_theta', default= 0.7, help= 'delay for actor in case of eligibility trace')
     parser.add_argument('--t_delay_w', default= 0.7, help= 'delay for the critic in case of eligibility trace')
 
