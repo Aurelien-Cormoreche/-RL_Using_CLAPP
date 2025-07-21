@@ -15,8 +15,6 @@ from ..exploration_modules import ICM, update_ICM_predictor
 from utils.utils import save_models
 from utils.utils_torch import TorchDeque, CustomAdamEligibility
 
-import time
-
 def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, feature_dim, pca_module = None, tau = 0.05):
 
     assert env.num_envs == 1
@@ -48,7 +46,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
     critic = agent.critic
     
     if opt.use_ICM:
-        icm = ICM(action_dim, feature_dim, pca_module, feature_dim).to(device)
+        icm = ICM(action_dim, feature_dim, pca_module, opt.ICM_latent_dim, device).to(device)
         icm_optimizer =  torch.optim.AdamW(icm.parameters(), lr = opt.icm_lr)
 
     if target:
@@ -117,10 +115,10 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             memory.push(features)
 
             if opt.use_ICM:
-                predicted, _ = icm(old_features,None, action)
-                reward += opt.alpha_intrinsic_reward * update_ICM_predictor(predicted, features, icm_optimizer)
+                predicted, _ = icm(old_features,features, action)
+                reward += opt.alpha_intrinsic_reward * update_ICM_predictor(predicted, features, icm_optimizer, icm.encoder_model, device)
                 for _ in range(opt.num_updates_ICM - 1):
-                    update_ICM_predictor(icm(old_features,None,action)[0], features, icm_optimizer)
+                    update_ICM_predictor(icm(old_features,features,action)[0], features, icm_optimizer, icm.encoder_model, device)
                
 
             with torch.no_grad():

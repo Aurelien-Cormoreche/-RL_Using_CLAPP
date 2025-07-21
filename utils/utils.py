@@ -37,8 +37,10 @@ def parsing():
     parser.add_argument('--frame_skip', default= 1, type= int, help= 'number of frames to skip')
     parser.add_argument('--use_ICM', action= 'store_true', help= 'wether to use intrisic curiosity module or not')
     parser.add_argument('--icm_lr', default= 1e-3, type= float, help= 'learning rate for the models of the ICM')
+    parser.add_argument('--ICM_latent_dim', default= 128, type= int, help= 'latent dimension for ICM')
     parser.add_argument('--alpha_intrinsic_reward', default= 1e-2, type= float, help= 'intrisic reward coefficient')
-    parser.add_argument('--num_updates_ICM', default= 5, type= int, help= 'number of updates for the ICM models')
+    parser.add_argument('--num_updates_ICM', default= 1, type= int, help= 'number of updates for the ICM models')
+    parser.add_argument('--PCA', action='store_true', help= 'use PCA for ICM')
     parser.add_argument('--lr_scheduler', action= 'store_true', help= 'add a lr scheduler')
 
     parser.add_argument('--actor_lr', default= 1e-3, help= 'learning rate for the actor if the algorithm is actor critic')
@@ -132,7 +134,6 @@ def createPCA(args, filename, env, encoder, n_components):
         features = np.load(filename)
     else:
         features = collect_and_store_features(args, filename, encoder, env)
-
     pca = PCA(n_components= n_components)
     pca.fit(features)
     return pca

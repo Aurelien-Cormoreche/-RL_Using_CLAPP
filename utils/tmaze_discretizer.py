@@ -5,7 +5,7 @@ import torch
 from PIL import Image
 from sklearn.metrics.pairwise import cosine_similarity
 import matplotlib.pyplot as plt
-from load_standalone_model import load_model
+from utils.load_standalone_model import load_model
 import os
 import gymnasium as gym
 import numpy

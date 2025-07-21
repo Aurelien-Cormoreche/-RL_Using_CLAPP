@@ -69,7 +69,7 @@ def train(opt, envs, model_path, device, models_dict):
                 }
         )
     if opt.PCA:
-        pca_module = createPCA(args, f'mlruns/encoded_features_{opt.encoder}', envs[0], encoder, opt.ICM_latent_dim)
+        pca_module = createPCA(args, f'trained_models/encoded_features_{opt.encoder}', envs.env.envs[0], encoder, opt.ICM_latent_dim)
     if opt.algorithm.startswith("actor_critic"):
         train_actor_critic(opt, envs, device, encoder, gamma, models_dict, True , action_dim,feature_dim, pca_module)
     else:
