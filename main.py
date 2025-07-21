@@ -12,7 +12,7 @@ from RL_algorithms.actor_critic.train import train_actor_critic
 from RL_algorithms.PPO.train import train_PPO
 
 from utils.load_standalone_model import load_model
-from utils.utils import save_models, create_ml_flow_experiment, parsing, create_envs, launch_experiment, collect_features
+from utils.utils import save_models, create_ml_flow_experiment, parsing, create_envs, launch_experiment, createPCA
 
 import torch
 import torch.nn.functional as F
@@ -68,9 +68,10 @@ def train(opt, envs, model_path, device, models_dict):
                     'visible_reward' : opt.visible_reward                
                 }
         )
-
+    if opt.PCA:
+        pca_module = createPCA(args, f'mlruns/encoded_features_{opt.encoder}', envs[0], encoder, opt.ICM_latent_dim)
     if opt.algorithm.startswith("actor_critic"):
-        train_actor_critic(opt, envs, device, encoder, gamma, models_dict, True , action_dim,feature_dim)
+        train_actor_critic(opt, envs, device, encoder, gamma, models_dict, True , action_dim,feature_dim, pca_module)
     else:
         train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, feature_dim)
     envs.close()

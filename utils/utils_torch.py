@@ -83,7 +83,6 @@ class CustomAdamEligibility():
         self.z_w = [z.mul_(self.beta1_w).add_(p.grad) for z, p in zip(self.z_w, self.critic.parameters())]
         self.z_theta = [z.mul_(self.beta1_theta).add_(p.grad)  for z, p in zip(self.z_theta, self.actor.parameters())]
        
-
         z_w_hat = [z * (advantage) for z in self.z_w]
         z_theta_hat = [z * (advantage) for z in self.z_theta]
         

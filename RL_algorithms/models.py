@@ -58,14 +58,5 @@ class Predictor_Model(nn.Module):
     def forward(self,encoded_features, action):
         return self.layer(torch.cat((encoded_features,action), dim= -1))
     
-
-
     
-
-
-
-
-
-
-
-        
+    

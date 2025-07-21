@@ -17,7 +17,7 @@ from utils.utils_torch import TorchDeque, CustomAdamEligibility
 
 import time
 
-def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, feature_dim, tau = 0.05):
+def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, feature_dim, pca_module = None, tau = 0.05):
 
     assert env.num_envs == 1
     
@@ -44,16 +44,12 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
         eligibility_traces = False
   
     agent = AC_Agent(feature_dim, action_dim,None, encoder).to(device)
-    
-    
-    if opt.use_ICM:
-        icm = ICM(action_dim, feature_dim, False, feature_dim).to(device)
-        icm_optimizer =  torch.optim.AdamW(icm.parameters(), lr = opt.icm_lr)
-
-
     actor = agent.actor
     critic = agent.critic
-
+    
+    if opt.use_ICM:
+        icm = ICM(action_dim, feature_dim, pca_module, feature_dim).to(device)
+        icm_optimizer =  torch.optim.AdamW(icm.parameters(), lr = opt.icm_lr)
 
     if target:
         target_critic = CriticModel(feature_dim, None).to(device)
@@ -62,13 +58,10 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
 
     if not eligibility_traces:
         optimizer = torch.optim.AdamW(agent.parameters(), lr = opt.lr)
-        
-      
+
     else:
         t_delay_theta = opt.t_delay_theta
         t_delay_w = opt.t_delay_w
-        z_theta = [torch.zeros_like(p, device= device) for p in actor.parameters()]
-        z_w = [torch.zeros_like(p, device= device) for p in critic.parameters()]
         optimizer = CustomAdamEligibility(actor, critic, device, opt.critic_lr, opt.actor_lr, gamma *t_delay_w, gamma *  t_delay_theta)
     
     current_rewards = 0
@@ -99,7 +92,6 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             optimizer.reset_zw_ztheta()
 
         while not done:
-           
             action, logprob, dist = agent.get_action_and_log_prob_dist_from_features(memory.get_all_content_as_tensor())
             value = agent.get_value_from_features(memory.get_all_content_as_tensor())
 
@@ -216,8 +208,6 @@ def update_a2c(tot_loss, optimizer):
     optimizer.zero_grad()
     tot_loss.backward()
     optimizer.step()
-    
-
 
 def update_eligibility(value, advantage, logprob, optimizer):
     optimizer.zero_grad()

@@ -7,11 +7,11 @@ import miniworld
 import os
 import numpy as np 
 import gymnasium as gym
-
+from sklearn.decomposition import PCA
 from mlflow import MlflowClient, MlflowException
 
 from utils.load_standalone_model import load_model
-
+from utils.tmaze_discretizer import TmazeDiscretizer
 
 
 def parsing():
@@ -43,8 +43,8 @@ def parsing():
 
     parser.add_argument('--actor_lr', default= 1e-3, help= 'learning rate for the actor if the algorithm is actor critic')
     parser.add_argument('--critic_lr', default= 5e-3, help= 'learning rate for the critic if the algorithm is actor critic')
-    parser.add_argument('--t_delay_theta', default= 0.7, help= 'delay for actor in case of eligibility trace')
-    parser.add_argument('--t_delay_w', default= 0.7, help= 'delay for the critic in case of eligibility trace')
+    parser.add_argument('--t_delay_theta', default= 0.9, help= 'delay for actor in case of eligibility trace')
+    parser.add_argument('--t_delay_w', default= 0.9, help= 'delay for the critic in case of eligibility trace')
 
     parser.add_argument('--len_rollout', default= 1024, type= int, help= 'length of the continuous rollout')
     parser.add_argument('--num_updates', default= 8, type= int, help= 'number of steps for the optimizer')
@@ -106,7 +106,6 @@ def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dic
             mlflow.end_run()
             
 
-
 def save_models(models_dict):
     
     torch.save(models_dict,'trained_models/saved_from_run.pt')
@@ -121,49 +120,21 @@ def create_ml_flow_experiment(experiment_name,uri ="file:mlruns"):
         mlflow.create_experiment(experiment_name)
 
 
-
-
-
-def get_wall_states(env, pos_list, direction_list, device):
-    
-    states = []
-    for p, d in zip(pos_list, direction_list):
-        d = d * math.pi/180
-    
-        state, _= env.reset()
-        env.unwrapped.agent.pos = p  # p = (x, 0, z)
-        env.unwrapped.agent.dir = d 
-        state = env.unwrapped.render_obs()
-        env.render()
-        state = torch.tensor(state, device= device, dtype= torch.float32)
-        state = state.reshape(state.shape[2], state.shape[0], state.shape[1]) 
-
-        states.append(state)
-
-    states = torch.stack(states)
-   
-    return states
-
-
-def collect_features(env, model_path, device, pos_list, direction_list, all_layers = False):
-    encoder = load_model(model_path= model_path).eval()
-    encoder.to(device)
-
-    if device.type == 'mps':
-        encoder.compile(backend="aot_eager")
-    else:
-        encoder.compile()
-
-    for param in encoder.parameters():
-        param.requires_grad = False
-
-    states = get_wall_states(env, pos_list, direction_list, device)
-    
-    features = encoder(states)
-
+def collect_and_store_features(args, filename, encoder, env):
+    disc = TmazeDiscretizer(env, encoder)
+    features = disc.extract_features_from_all_positions()
+    np.save(filename, features)
     return features
 
 
+def createPCA(args, filename, env, encoder, n_components):
+    if os.path.exists(filename):
+        features = np.load(filename)
+    else:
+        features = collect_and_store_features(args, filename, encoder, env)
 
+    pca = PCA(n_components= n_components)
+    pca.fit(features)
+    return pca
     
 
