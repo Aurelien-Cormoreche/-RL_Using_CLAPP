@@ -13,7 +13,7 @@ from ..models import CriticModel
 from ..exploration_modules import ICM, update_ICM_predictor
 
 from utils.utils import save_models
-from utils.utils_torch import TorchDeque
+from utils.utils_torch import TorchDeque, CustomAdamEligibility
 
 import time
 
@@ -54,6 +54,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
     actor = agent.actor
     critic = agent.critic
 
+
     if target:
         target_critic = CriticModel(feature_dim, None).to(device)
         target_critic.load_state_dict(critic.state_dict())
@@ -61,13 +62,15 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
 
     if not eligibility_traces:
         optimizer = torch.optim.AdamW(agent.parameters(), lr = opt.lr)
+        
       
     else:
-        z_theta = [torch.zeros_like(p, device= device) for p in actor.parameters()]
-        z_w = [torch.zeros_like(p, device= device) for p in critic.parameters()]
         t_delay_theta = opt.t_delay_theta
         t_delay_w = opt.t_delay_w
-            
+        z_theta = [torch.zeros_like(p, device= device) for p in actor.parameters()]
+        z_w = [torch.zeros_like(p, device= device) for p in critic.parameters()]
+        optimizer = CustomAdamEligibility(actor, critic, device, opt.critic_lr, opt.actor_lr, gamma *t_delay_w, gamma *  t_delay_theta)
+    
     current_rewards = 0
 
     step = torch.zeros([1], device= device)
@@ -91,15 +94,12 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
         length_episode = 0
         tot_loss_critic = 0
         tot_loss_actor = 0
-       
+
         if eligibility_traces:
-            for z in z_theta: z.zero_()
-            for z in z_w: z.zero_()
-            I = 1
+            optimizer.reset_zw_ztheta()
 
         while not done:
-         
-            
+           
             action, logprob, dist = agent.get_action_and_log_prob_dist_from_features(memory.get_all_content_as_tensor())
             value = agent.get_value_from_features(memory.get_all_content_as_tensor())
 
@@ -110,7 +110,6 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
                 if terminated or truncated:
                     break
             
-
             reward = reward[0]
             terminated = terminated[0]
             truncated = truncated[0]
@@ -154,9 +153,8 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
                 tot_loss_critic, tot_loss_actor = update_a2c(tot_loss, optimizer)
             
             else:
-                z_theta, z_w = update_eligibility(z_w, z_theta, t_delay_w, t_delay_theta, gamma, I,
-                        value, advantage, logprob, critic, actor ,opt.critic_lr, opt.actor_lr)
-                I = gamma * I
+                update_eligibility(value, advantage, logprob, optimizer)
+     
 
             if target:
                 update_target(target_critic, critic, tau)
@@ -221,24 +219,16 @@ def update_a2c(tot_loss, optimizer):
     
 
 
-def update_eligibility(z_w, z_theta, t_delay_w, t_delay_theta, gamma, I, value, advantage, logprob, critic, actor, lr_w, lr_theta):
-    
-    grad_values = torch.autograd.grad(value, critic.parameters())
-    grad_policy = torch.autograd.grad(logprob, actor.parameters())
-    
-    z_w = [gamma * t_delay_w * z +  p for z, p in zip(z_w, grad_values)]
-    z_theta = [gamma * t_delay_theta * z +   p for z, p in zip(z_theta, grad_policy)]
-
+def update_eligibility(value, advantage, logprob, optimizer):
+    optimizer.zero_grad()
+    value.backward()
+    logprob.backward()
     with torch.no_grad():
+        optimizer.step(advantage)
 
-        for p, z in zip(critic.parameters(), z_w):
-            p.add_(lr_w * advantage.squeeze() * z)
-            
 
-        for p, z in zip(actor.parameters(), z_theta):    
-            p.add_(lr_theta * advantage.squeeze() * z)
 
-    return z_theta, z_w
+
     
         
         
