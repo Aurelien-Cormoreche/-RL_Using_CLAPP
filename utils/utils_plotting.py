@@ -20,8 +20,8 @@ def visualize_weights(filepath, model_name):
 
 if __name__ == '__main__':
 
-    '''
-    tab = [10,20,50,100,300,500]
+    
+    tab = [1,10,20,50,100,300,500]
     for t in tab:
         mv_avg_CLAPP = compute_moving_average('mlruns/244787145723528822/e677b4afb3e349e48481f15f21970daf/metrics/run length', t)
         #mv_avg_Resnet = compute_moving_average('mlruns/873129205249233078/08d90e56b9d84e019e5ccee9e9ecc254/metrics/run length',t)
@@ -29,7 +29,7 @@ if __name__ == '__main__':
         mv_avg_a2c_fs =  3 * compute_moving_average('mlruns/244787145723528822/fc50ad63a7a542158ae5073c793bc890/metrics/length_episode',t)
         mv_avg_a2c_fs_mf =  compute_moving_average('mlruns/244787145723528822/4c01db63f6804de39fd9106b7812184a/metrics/length_episode',t)
         mv_avg_a2c_fs_mf_2 =  compute_moving_average('mlruns/244787145723528822/2cd2bba123b046c693459074b4050ca2/metrics/length_episode',t)
-        imc =  compute_moving_average('mlruns/244787145723528822/43d1946ebacc4ba5876cd446a51b1909/metrics/length_episode',t)
+        imc =  compute_moving_average('mlruns/244787145723528822/cf387e47ffa44c8a9a13ee5623d3915e/metrics/length_episode',t)
 
         #plt.plot(mv_avg_CLAPP)
         #plt.plot(mv_avg_Resnet)
@@ -40,5 +40,6 @@ if __name__ == '__main__':
         plt.plot(imc)
         plt.show()
 
-'''
+    '''
     visualize_weights('trained_models/saved_from_run.pt', 'icm_predictor')
+    '''
