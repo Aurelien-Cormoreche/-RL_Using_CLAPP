@@ -119,6 +119,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
                 reward += opt.alpha_intrinsic_reward * update_ICM_predictor(predicted, features, icm_optimizer, icm.encoder_model, device)
                 for _ in range(opt.num_updates_ICM - 1):
                     update_ICM_predictor(icm(old_features,features,action)[0], features, icm_optimizer, icm.encoder_model, device)
+              
                
 
             with torch.no_grad():

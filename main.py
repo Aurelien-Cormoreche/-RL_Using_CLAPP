@@ -68,6 +68,7 @@ def train(opt, envs, model_path, device, models_dict):
                     'visible_reward' : opt.visible_reward                
                 }
         )
+    pca_module = None
     if opt.PCA:
         pca_module = createPCA(args, f'trained_models/encoded_features_{opt.encoder}', envs.env.envs[0], encoder, opt.ICM_latent_dim)
     if opt.algorithm.startswith("actor_critic"):

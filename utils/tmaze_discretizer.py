@@ -45,7 +45,7 @@ class TmazeDiscretizer:
         # Coins des bras
         positions.append([9.78, 0, -6.0])  # Coin bras gauche
         positions.append([9.78, 0, 6.0])   # Coin bras droit
-        
+        print(positions)
         return positions
     
     def get_grid_positions(self, resolution=0.5):
@@ -69,7 +69,7 @@ class TmazeDiscretizer:
         for x in x_range:
             for z in z_range:
                 grid_positions.append([x, 1.37, z])
-                
+    
         return grid_positions
     
     def extract_features(self, obs):
@@ -99,10 +99,12 @@ class TmazeDiscretizer:
         self.featureslist = []
         position_orientation_pairs = []
         wsh = self.env.reset()
+        i = 0
         for pos_idx, pos in enumerate(positions):
             for orient in orientations:
                 # try:
                     # Reset et placer l'agent
+                
                    
                     wsh = self.env.render_obs()
                     wsh = np.sum(
@@ -118,6 +120,7 @@ class TmazeDiscretizer:
                     self.featureslist.append(features)
                     position_orientation_pairs.append((pos_idx, orient))
                     
+                    i += 1
                 # except Exception as e:
                 #     print(f"Erreur à la position {pos} avec orientation {orient}: {e}")
                 #     continue
@@ -306,20 +309,6 @@ if __name__ == '__main__':
 
     # Extract features and compute similarity
     features1 = TmazeforMatrix1.extract_features_from_all_positions()
-
-    vars= features1.var(axis= 0)
-    means = features1.mean(axis= 0)
-    plt.plot(vars)
-    plt.show()
-    plt.plot(means)
-    plt.show()
-
-    thresholds = np.arange(start = 0, stop = 0.1, step= 0.0005)
-
-    nums = [(thresh, np.sum( vars > thresh)) for thresh in thresholds]
-
-    plt.plot(thresholds,nums)
-    plt.show()
 
 
     '''
