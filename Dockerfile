@@ -46,8 +46,4 @@ USER ${LDAP_USERNAME}
 
 # Install additional dependencies
 RUN pip install -r requirements.txt
-# OR/AND
-RUN pip install \
-    matplotlib \
-    numpy \
-    scipy
+
