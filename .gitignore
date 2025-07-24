@@ -7,3 +7,5 @@ ehthumbs.db
 Thumbs.db
 trained_models
 mlruns
+*/__pycache__/
+Miniworld

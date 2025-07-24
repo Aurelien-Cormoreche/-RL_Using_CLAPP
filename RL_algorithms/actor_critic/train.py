@@ -2,10 +2,8 @@ import torch
 import torch.nn as nn
 import tqdm
 import mlflow
-
 import numpy as np
 from tqdm import std
-import miniworld
 import gymnasium as gym
 
 from ..ac_agent import AC_Agent
@@ -90,6 +88,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
             optimizer.reset_zw_ztheta()
 
         while not done:
+            
             action, logprob, dist = agent.get_action_and_log_prob_dist_from_features(memory.get_all_content_as_tensor())
             value = agent.get_value_from_features(memory.get_all_content_as_tensor())
 
@@ -120,8 +119,6 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
                 for _ in range(opt.num_updates_ICM - 1):
                     update_ICM_predictor(icm(old_features,features,action)[0], features, icm_optimizer, icm.encoder_model, device)
               
-               
-
             with torch.no_grad():
                 if target:
                     new_value = target_critic(memory.get_all_content_as_tensor()).detach() 
@@ -149,30 +146,29 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
 
             if target:
                 update_target(target_critic, critic, tau)
-
-            
+   
             state = n_state_t
             total_reward += reward
             step += 1
             done= terminated or truncated
 
-            if epoch % opt.checkpoint_interval == 0:
-                models_dict['actor'] = actor.state_dict()
-                models_dict['critic'] = critic.state_dict()
-                if opt.use_ICM:
-                    models_dict['icm_predictor'] = icm.predictor_model.state_dict()
-                save_models(models_dict)
-
             if opt.render:
                env.render() 
             
         current_rewards += total_reward  
+                    
+        if epoch % opt.checkpoint_interval == 0:
+            models_dict['actor'] = actor.state_dict()
+            models_dict['critic'] = critic.state_dict()
+            if opt.use_ICM:
+                models_dict['icm_predictor'] = icm.predictor_model.state_dict()
+                save_models(models_dict)
 
         if opt.track_run:
             mlflow.log_metrics(
                 {
                     'reward': total_reward,
-                    'loss_acotr': tot_loss_actor/length_episode,
+                    'loss_actor': tot_loss_actor/length_episode,
                     'loss_critic':  tot_loss_critic/length_episode,
                     'length_episode': length_episode
                 },

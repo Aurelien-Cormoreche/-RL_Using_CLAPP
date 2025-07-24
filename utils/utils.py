@@ -1,9 +1,7 @@
-import miniworld.wrappers
 import torch
 import math
 import mlflow
 import argparse
-import miniworld
 import os
 import numpy as np 
 import gymnasium as gym
@@ -109,12 +107,10 @@ def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dic
             
 
 def save_models(models_dict):
-    
-    torch.save(models_dict,'trained_models/saved_from_run.pt')
+    torch.save(models_dict,f"{os.environ['SAVED_MODELS_S2025']}/saved_from_run.pt")
 
 
-
-def create_ml_flow_experiment(experiment_name,uri ="file:mlruns"):
+def create_ml_flow_experiment(experiment_name,uri =f"file:{os.environ['ML_RUNS_S2025']}"):
     mlflow.set_tracking_uri(uri)
     try:
         mlflow.set_experiment(experiment_name)

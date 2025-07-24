@@ -1,12 +1,4 @@
 import os
-import argparse
-import miniworld.wrappers
-import tqdm
-import traceback
-
-from tqdm import std
-import miniworld
-import gymnasium as gym
 
 from RL_algorithms.actor_critic.train import train_actor_critic
 from RL_algorithms.PPO.train import train_PPO
@@ -18,9 +10,7 @@ import torch
 import torch.nn.functional as F
 from torchvision.models import resnet50, ResNet50_Weights
 
-import torch.nn as nn
 import numpy as np
-from torchsummary import summary
 import mlflow
 
 def train(opt, envs, model_path, device, models_dict):

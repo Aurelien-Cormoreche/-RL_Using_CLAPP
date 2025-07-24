@@ -1,17 +1,15 @@
 import seaborn as sns
-import math
 import numpy as np
 import torch
-from PIL import Image
 from sklearn.metrics.pairwise import cosine_similarity
 import matplotlib.pyplot as plt
 from utils.load_standalone_model import load_model
 import os
 import gymnasium as gym
-import numpy
+
 from torchvision.models import resnet50, ResNet50_Weights
-from miniworld.wrappers import GreyscaleWrapper
-import time
+
+
 
 class TmazeDiscretizer:
     def __init__(self, env, encoder=None, encoder_type='CLAPP'):
