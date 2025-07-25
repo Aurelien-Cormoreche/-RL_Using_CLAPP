@@ -1,26 +1,16 @@
 import os
-import argparse
-import miniworld.wrappers
-import tqdm
-import traceback
-
-from tqdm import std
-import miniworld
-import gymnasium as gym
 
 from RL_algorithms.actor_critic.train import train_actor_critic
 from RL_algorithms.PPO.train import train_PPO
 
 from utils.load_standalone_model import load_model
-from utils.utils import save_models, create_ml_flow_experiment, parsing, create_envs, launch_experiment, collect_features
+from utils.utils import save_models, create_ml_flow_experiment, parsing, create_envs, launch_experiment, createPCA
 
 import torch
 import torch.nn.functional as F
 from torchvision.models import resnet50, ResNet50_Weights
 
-import torch.nn as nn
 import numpy as np
-from torchsummary import summary
 import mlflow
 
 def train(opt, envs, model_path, device, models_dict):
@@ -30,12 +20,11 @@ def train(opt, envs, model_path, device, models_dict):
     if opt.encoder == 'CLAPP':
         encoder = load_model(model_path= model_path).eval()
         feature_dim = 1024
-        if not opt.greyscale:
-            feature_dim *= 3
         if opt.keep_patches:
             feature_dim = 15 * 1024
     elif opt.encoder == 'resnet':    
         encoder = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+        assert not opt.greyscale
         feature_dim = 1000
     else:
         print('no available encoder matched the argument')
@@ -65,12 +54,15 @@ def train(opt, envs, model_path, device, models_dict):
                     'gamma': gamma,
                     'keep_patches' : opt.keep_patches, 
                     'seed' : opt.seed,
-                    'visible_reward' : opt.visible_reward                
+                    'visible_reward' : opt.visible_reward,
+                    'normalize_features' : opt.normalize_features             
                 }
         )
-
+    pca_module = None
+    if opt.PCA:
+        pca_module = createPCA(args, f'trained_models/encoded_features_{opt.encoder}', envs.env.envs[0], encoder, opt.ICM_latent_dim)
     if opt.algorithm.startswith("actor_critic"):
-        train_actor_critic(opt, envs, device, encoder, gamma, models_dict, True , action_dim,feature_dim)
+        train_actor_critic(opt, envs, device, encoder, gamma, models_dict, True , action_dim,feature_dim, pca_module)
     else:
         train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, feature_dim)
     envs.close()
@@ -78,9 +70,6 @@ def train(opt, envs, model_path, device, models_dict):
 
 
 def main(args):
-
-
-   
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -107,19 +96,22 @@ def main(args):
 
     if args.experiment:
 
-        run_dicts = [ 
-            { 'run_name' : 'resnetTry',
-              'algorithm' : 'PPO',
-              'encoder' : 'resnet',
-              'greyscale' : False
-                },
-                {
-                'run_name' : 'CLAPPTry',
-                'algorithm' : 'PPO',
-                'encoder' : 'CLAPP' ,
-                        
-            }         
-            
+        run_dicts = [
+            { 'run_name' : 'CLAPP_Normalized_2',
+              'algorithm' : 'actor_critic_e',
+              'encoder' : 'CLAPP',
+              'greyscale' : True,
+              'num_epochs' : 8000,
+              'frame_skip' : 3,
+              'num_envs' : 1,
+              'actor_lr' : 5e-5,
+              'critic_lr' : 1e-4,
+              't_delay_theta' : 0.9,
+              't_delay_w' : 0.9,
+              'gamma' : 0.995,
+              'normalize_features' : True,
+            }
+,               
         ]
 
         seeds = [5,10]
@@ -129,6 +121,5 @@ def main(args):
         train(opt= args, envs= envs,model_path= model_path,device =device, models_dict= models_dict)
     
 if __name__ == '__main__':
-    
     args = parsing()
     main(args)

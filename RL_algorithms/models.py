@@ -16,9 +16,8 @@ class ActorModel(nn.Module):
             x = self.layer(x)/temp
         else:
            x = self.layer(x)
-
-
         x = self.softmax(x)
+        
         return x
     
     
@@ -58,14 +57,5 @@ class Predictor_Model(nn.Module):
     def forward(self,encoded_features, action):
         return self.layer(torch.cat((encoded_features,action), dim= -1))
     
-
-
     
-
-
-
-
-
-
-
-        
+    

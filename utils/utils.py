@@ -1,17 +1,15 @@
-import miniworld.wrappers
 import torch
 import math
 import mlflow
 import argparse
-import miniworld
 import os
 import numpy as np 
 import gymnasium as gym
-
+from sklearn.decomposition import PCA
 from mlflow import MlflowClient, MlflowException
 
 from utils.load_standalone_model import load_model
-
+from utils.tmaze_discretizer import TmazeDiscretizer
 
 
 def parsing():
@@ -28,22 +26,45 @@ def parsing():
     parser.add_argument('--encoder', default= "CLAPP", help="decide which encoder to use")
     parser.add_argument('--keep_patches', action= 'store_true', help= 'keep the patches for the encoder')
     parser.add_argument('--seed', default= 0, type= int, help= 'manual seed for training')
-    parser.add_argument('--checkpoint_interval', default= 50, type= int, help= 'interval at which to save the model weights')
+    parser.add_argument('--checkpoint_interval', default= 1000, type= int, help= 'interval at which to save the model weights')
 
     #hyperparameters for the training
-    parser.add_argument('--num_epochs', default= 170, type= int, help= 'number of epochs for the training')
+    parser.add_argument('--num_epochs', default= 8000, type= int, help= 'number of epochs for the training')
     parser.add_argument('--gamma', default= 0.995, help= 'gamma for training in the environment')    
     parser.add_argument('--nb_stacked_frames', default= 1, type= int, help= 'number of stacked frames given as input')
     parser.add_argument('--frame_skip', default= 1, type= int, help= 'number of frames to skip')
     parser.add_argument('--use_ICM', action= 'store_true', help= 'wether to use intrisic curiosity module or not')
-    parser.add_argument('--icm_lr', default= 1e-3, type= float, help= 'learning rate for the models of the ICM')
-    parser.add_argument('--alpha_intrinsic_reward', default= 1e-2, type= float, help= 'intrisic reward coefficient')
-    parser.add_argument('--num_updates_ICM', default= 5, type= int, help= 'number of updates for the ICM models')
+    parser.add_argument('--icm_lr', default= 1e-4, type= float, help= 'learning rate for the models of the ICM')
+    parser.add_argument('--ICM_latent_dim', default= 128, type= int, help= 'latent dimension for ICM')
+    parser.add_argument('--alpha_intrinsic_reward', default= 1e-1, type= float, help= 'intrisic reward coefficient')
+    parser.add_argument('--num_updates_ICM', default= 1, type= int, help= 'number of updates for the ICM models')
+    parser.add_argument('--PCA', action='store_true', help= 'use PCA for ICM')
+    parser.add_argument('--lr_scheduler', action= 'store_true', help= 'add a lr scheduler')
+    parser.add_argument('--normalize_features', action= 'store_true', help='normalize the features from the encoder')
 
-    parser.add_argument('--actor_lr', default= 1e-3, help= 'learning rate for the actor if the algorithm is actor critic')
-    parser.add_argument('--critic_lr', default= 5e-3, help= 'learning rate for the critic if the algorithm is actor critic')
-    parser.add_argument('--t_delay_theta', default= 0.7, help= 'delay for actor in case of eligibility trace')
-    parser.add_argument('--t_delay_w', default= 0.7, help= 'delay for the critic in case of eligibility trace')
+    parser.add_argument('--schedule_type_critic', default='linear', help='schedule type for the critic learning rate')
+    parser.add_argument('--critic_lr_i', type=float, default=1e-4, help='initial learning rate for the critic')
+    parser.add_argument('--critic_lr_e', type=float, default=1e-4, help='end learning rate for the critic')
+    parser.add_argument('--critic_lr_m', type=float, default=1e-4, help='max critic learning rate (for warmup jobs)')
+    parser.add_argument('--critic_len_w', type=int, default=10, help='warmup length for the critic learning rate scheduler')
+
+    parser.add_argument('--schedule_type_actor', default='linear', help='schedule type for the actor learning rate')
+    parser.add_argument('--actor_lr_i', type=float, default=8e-5, help='initial learning rate for the actor')
+    parser.add_argument('--actor_lr_e', type=float, default=8e-5, help='end learning rate for the actor')
+    parser.add_argument('--actor_lr_m', type=float, default=8e-5, help='max actor learning rate (for warmup jobs)')
+    parser.add_argument('--actor_len_w', type=int, default=10, help='warmup length for the actor learning rate scheduler')
+
+    parser.add_argument('--schedule_type_theta_lam', default='cosine_annealing', help='schedule type for the actor eligibility trace delay')
+    parser.add_argument('--t_delay_theta_i', type=float, default=0.95, help='initial delay for actor in case of eligibility trace')
+    parser.add_argument('--t_delay_theta_e', type=float, default=0.75, help='end delay for actor in case of eligibility trace')
+    parser.add_argument('--theta_l_m', type=float, default=0.9, help='max actor eligibility trace delay (for warmup jobs)')
+    parser.add_argument('--theta_l_len_w', type=int, default=10, help='warmup length for actor eligibility trace delay')
+
+    parser.add_argument('--schedule_type_w_lam', default='cosine_annealing', help='schedule type for the critic eligibility trace delay')
+    parser.add_argument('--t_delay_w_i', type=float, default=0.95, help='initial delay for critic in case of eligibility trace')
+    parser.add_argument('--t_delay_w_e', type=float, default=0.75, help='end delay for critic in case of eligibility trace')
+    parser.add_argument('--w_l_m', type=float, default=0.9, help='max critic eligibility trace delay (for warmup jobs)')
+    parser.add_argument('--w_l_len_w', type=int, default=10, help='warmup length for critic eligibility trace delay')
 
     parser.add_argument('--len_rollout', default= 1024, type= int, help= 'length of the continuous rollout')
     parser.add_argument('--num_updates', default= 8, type= int, help= 'number of steps for the optimizer')
@@ -96,7 +117,6 @@ def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dic
         else:
             print('not possible to assign seed')
         for run_dict in run_dicts:
-
             for key in run_dict:
                 setattr(opt,key,run_dict[key])
         
@@ -105,14 +125,11 @@ def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dic
             mlflow.end_run()
             
 
-
 def save_models(models_dict):
-    
-    torch.save(models_dict,'trained_models/saved_from_run.pt')
+    torch.save(models_dict,f"{os.environ['SAVED_MODELS_S2025']}/saved_from_run.pt")
 
 
-
-def create_ml_flow_experiment(experiment_name,uri ="file:mlruns"):
+def create_ml_flow_experiment(experiment_name,uri =f"file:{os.environ['ML_RUNS_S2025']}"):
     mlflow.set_tracking_uri(uri)
     try:
         mlflow.set_experiment(experiment_name)
@@ -120,49 +137,20 @@ def create_ml_flow_experiment(experiment_name,uri ="file:mlruns"):
         mlflow.create_experiment(experiment_name)
 
 
-
-
-
-def get_wall_states(env, pos_list, direction_list, device):
-    
-    states = []
-    for p, d in zip(pos_list, direction_list):
-        d = d * math.pi/180
-    
-        state, _= env.reset()
-        env.unwrapped.agent.pos = p  # p = (x, 0, z)
-        env.unwrapped.agent.dir = d 
-        state = env.unwrapped.render_obs()
-        env.render()
-        state = torch.tensor(state, device= device, dtype= torch.float32)
-        state = state.reshape(state.shape[2], state.shape[0], state.shape[1]) 
-
-        states.append(state)
-
-    states = torch.stack(states)
-   
-    return states
-
-
-def collect_features(env, model_path, device, pos_list, direction_list, all_layers = False):
-    encoder = load_model(model_path= model_path).eval()
-    encoder.to(device)
-
-    if device.type == 'mps':
-        encoder.compile(backend="aot_eager")
-    else:
-        encoder.compile()
-
-    for param in encoder.parameters():
-        param.requires_grad = False
-
-    states = get_wall_states(env, pos_list, direction_list, device)
-    
-    features = encoder(states)
-
+def collect_and_store_features(args, filename, encoder, env):
+    disc = TmazeDiscretizer(env, encoder)
+    features = disc.extract_features_from_all_positions()
+    np.save(filename, features)
     return features
 
 
-
+def createPCA(args, filename, env, encoder, n_components):
+    if os.path.exists(filename):
+        features = np.load(filename)
+    else:
+        features = collect_and_store_features(args, filename, encoder, env)
+    pca = PCA(n_components= n_components)
+    pca.fit(features)
+    return pca
     
 
