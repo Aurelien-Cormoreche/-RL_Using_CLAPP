@@ -6,17 +6,26 @@ from .models import ActorModel, CriticModel
 
 class AC_Agent(nn.Module):
 
-    def __init__(self,num_features, num_action, activation, encoder, *args, **kwargs):
+    def __init__(self,num_features, num_action, activation, encoder,normalize_features = False, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        self.normalize_features = normalize_features
 
         self.encoder = encoder
 
         self.actor = ActorModel(num_features, num_action)
-
+     
         self.critic = CriticModel(num_features, activation)
 
+        if self.normalize_features:
+            self.normalization = nn.LayerNorm(normalized_shape= num_features)
+
     def get_features(self, state, keep_patches = False):
-        return self.encoder(state) 
+        with torch.no_grad():
+            x = self.encoder(state) 
+            if self.normalize_features:
+                x = self.normalization(x)
+        return x
     
     def get_value_from_features(self, features):
         return self.critic(features)

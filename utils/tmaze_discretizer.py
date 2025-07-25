@@ -9,8 +9,6 @@ import gymnasium as gym
 
 from torchvision.models import resnet50, ResNet50_Weights
 
-
-
 class TmazeDiscretizer:
     def __init__(self, env, encoder=None, encoder_type='CLAPP'):
    
@@ -309,8 +307,9 @@ if __name__ == '__main__':
     features1 = TmazeforMatrix1.extract_features_from_all_positions()
 
 
-    '''
     matrice1= TmazeforMatrix1.compute_similarity_matrix(features=features1)
+    
+    '''
     features2 = TmazeforMatrix2.extract_features_from_all_positions()
     matrice2= TmazeforMatrix2.compute_similarity_matrix(features=features2)
     differencematrix, suspicious_indices = difference_matrix(matrice1, matrice2, threshold=1)

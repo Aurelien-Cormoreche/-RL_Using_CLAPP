@@ -2,7 +2,6 @@ import math
 import argparse
 import numpy as np
 import pyglet
-pyglet.options['shadow_window'] = False
 pyglet.options['headless'] = True
 import miniworld
 from miniworld.miniworld import MiniWorldEnv

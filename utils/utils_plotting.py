@@ -25,6 +25,21 @@ def visualize_weights(filepath, model_name):
     plt.plot(model_dict['layer.weight'][0].cpu())
    
     plt.show()
+def plot_matrix(file_features):
+    features = torch.from_numpy(np.load(file_features)).to('mps') * 100
+
+    ln1 = torch.nn.LayerNorm((features.shape[1]), elementwise_affine= False).to('mps')
+    transformedfeatures = ln1(features)
+    
+   
+
+    cosine = transformedfeatures @ transformedfeatures.T
+
+    plt.matshow(cosine.to('cpu').detach().numpy())
+    plt.colorbar()
+    
+    plt.show()
+    
 
 def meusureIntensityAtPositions(file_features, file_model, model_name):
     features = torch.from_numpy(np.load(file_features)).to('mps')
@@ -77,13 +92,12 @@ def meusureIntensityAtPositions(file_features, file_model, model_name):
 
 
 if __name__ == '__main__':
-
-
-
+ 
     tab = [1,10,20,50,100,300,500]
     for t in tab:
+        
         mv_avg_CLAPP = compute_moving_average('mlruns/244787145723528822/e677b4afb3e349e48481f15f21970daf/metrics/run length', t)
-        #mv_avg_Resnet = compute_moving_average('mlruns/873129205249233078/08d90e56b9d84e019e5ccee9e9ecc254/metrics/run length',t)
+        mv_avg_Resnet = compute_moving_average('mlruns/873129205249233078/08d90e56b9d84e019e5ccee9e9ecc254/metrics/run length',t)
         #mv_avg_a2c =  compute_moving_average('mlruns/244787145723528822/ef58ac2d07e343989ec5dcf2cde369d2/metrics/length_episode',t)
         mv_avg_a2c_fs =  3 * compute_moving_average('mlruns/244787145723528822/fc50ad63a7a542158ae5073c793bc890/metrics/length_episode',t)
         mv_avg_a2c_fs_mf =  compute_moving_average('mlruns/244787145723528822/4c01db63f6804de39fd9106b7812184a/metrics/length_episode',t)
@@ -92,18 +106,35 @@ if __name__ == '__main__':
         imc = compute_moving_average('mlruns/244787145723528822/62f7233037ed48ad909933993444f90d/metrics/length_episode',t)
         new = compute_moving_average('mlruns/244787145723528822/880dc02e877740e080bb84e2874bf976/metrics/length_episode',t)
         higherLr = compute_moving_average('mlruns/244787145723528822/1bf43f94dba04524b3451f7fb072f61f/metrics/length_episode',t)
-        #plt.plot(mv_avg_CLAPP)
+        normalized_good_1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/742250363624833332/6c08ec70df4b4a6dbe81a35db822efe5/metrics/length_episode', t)
+        normalized_good_2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/742250363624833332/d79efb31f4654bdf89f3348791e1d5f4/metrics/length_episode', t)
+        normalized_good_3 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/742250363624833332/a4ba2d0dfa4c4164b73773a4bd9422f3/metrics/length_episode', t)
+
+        mean_normalized_good = np.array([normalized_good_1,normalized_good_2,normalized_good_3]).mean(axis= 0)
+
+        highlambda = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/a82399406d664aeb96cee572193d36eb/metrics/length_episode', t)
+        decayinglambda = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/38b439f35bc4486fb4888ea07df8ef56/metrics/length_episode', t)
+
+        plt.plot(mv_avg_CLAPP)
         #plt.plot(mv_avg_Resnet)
         #plt.plot(mv_avg_a2c_fs)
        
         #plt.plot(mv_avg_a2c_fs_mf)
         #plt.plot(mv_avg_a2c_fs_mf_2)
-        plt.plot(mv_avg_a2c_fs)
-        plt.plot(higherLr)
+        #plt.plot(mean_normalized_good)
+        #plt.plot(mean_normalized_good)
+        plt.plot(highlambda)
+        plt.plot(decayinglambda)
+       
+       
         plt.show()
 
 
-   
+    '''
     #visualize_weights('trained_models/saved_from_run.pt', 'critic')
-    #meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', 'trained_models/EL_trace_8000_runs.pt', 'critic')
+    meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', 'trained_models/EL_trace_8000_runs.pt', 'critic')
 
+
+    plot_matrix('trained_models/encoded_features_CLAPP.npy')
+
+    '''

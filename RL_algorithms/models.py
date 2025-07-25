@@ -16,9 +16,8 @@ class ActorModel(nn.Module):
             x = self.layer(x)/temp
         else:
            x = self.layer(x)
-
-
         x = self.softmax(x)
+        
         return x
     
     
