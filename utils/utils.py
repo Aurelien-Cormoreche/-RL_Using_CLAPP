@@ -29,7 +29,7 @@ def parsing():
     parser.add_argument('--checkpoint_interval', default= 1000, type= int, help= 'interval at which to save the model weights')
 
     #hyperparameters for the training
-    parser.add_argument('--num_epochs', default= 14000, type= int, help= 'number of epochs for the training')
+    parser.add_argument('--num_epochs', default= 8000, type= int, help= 'number of epochs for the training')
     parser.add_argument('--gamma', default= 0.995, help= 'gamma for training in the environment')    
     parser.add_argument('--nb_stacked_frames', default= 1, type= int, help= 'number of stacked frames given as input')
     parser.add_argument('--frame_skip', default= 1, type= int, help= 'number of frames to skip')
@@ -48,20 +48,20 @@ def parsing():
     parser.add_argument('--critic_lr_m', type=float, default=1e-4, help='max critic learning rate (for warmup jobs)')
     parser.add_argument('--critic_len_w', type=int, default=10, help='warmup length for the critic learning rate scheduler')
 
-    parser.add_argument('--schedule_type_actor', default='cosine_annealing', help='schedule type for the actor learning rate')
-    parser.add_argument('--actor_lr_i', type=float, default=9e-5, help='initial learning rate for the actor')
-    parser.add_argument('--actor_lr_e', type=float, default=5e-5, help='end learning rate for the actor')
+    parser.add_argument('--schedule_type_actor', default='linear', help='schedule type for the actor learning rate')
+    parser.add_argument('--actor_lr_i', type=float, default=1e-4, help='initial learning rate for the actor')
+    parser.add_argument('--actor_lr_e', type=float, default=1e-4, help='end learning rate for the actor')
     parser.add_argument('--actor_lr_m', type=float, default=9e-5, help='max actor learning rate (for warmup jobs)')
     parser.add_argument('--actor_len_w', type=int, default=100, help='warmup length for the actor learning rate scheduler')
 
-    parser.add_argument('--schedule_type_theta_lam', default='cosine_annealing', help='schedule type for the actor eligibility trace delay')
-    parser.add_argument('--t_delay_theta_i', type=float, default=0.95, help='initial delay for actor in case of eligibility trace')
+    parser.add_argument('--schedule_type_theta_lam', default='linear', help='schedule type for the actor eligibility trace delay')
+    parser.add_argument('--t_delay_theta_i', type=float, default=0.75, help='initial delay for actor in case of eligibility trace')
     parser.add_argument('--t_delay_theta_e', type=float, default=0.75, help='end delay for actor in case of eligibility trace')
     parser.add_argument('--theta_l_m', type=float, default=0.9, help='max actor eligibility trace delay (for warmup jobs)')
     parser.add_argument('--theta_l_len_w', type=int, default=10, help='warmup length for actor eligibility trace delay')
 
-    parser.add_argument('--schedule_type_w_lam', default='cosine_annealing', help='schedule type for the critic eligibility trace delay')
-    parser.add_argument('--t_delay_w_i', type=float, default=0.95, help='initial delay for critic in case of eligibility trace')
+    parser.add_argument('--schedule_type_w_lam', default='linear', help='schedule type for the critic eligibility trace delay')
+    parser.add_argument('--t_delay_w_i', type=float, default=0.75, help='initial delay for critic in case of eligibility trace')
     parser.add_argument('--t_delay_w_e', type=float, default=0.75, help='end delay for critic in case of eligibility trace')
     parser.add_argument('--w_l_m', type=float, default=0.9, help='max critic eligibility trace delay (for warmup jobs)')
     parser.add_argument('--w_l_len_w', type=int, default=10, help='warmup length for critic eligibility trace delay')

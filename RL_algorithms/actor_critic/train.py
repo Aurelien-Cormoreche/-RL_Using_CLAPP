@@ -49,6 +49,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
         while not done:   
             action, logprob, dist = agent.get_action_and_log_prob_dist_from_features(memory.get_all_content_as_tensor())
             value = agent.get_value_from_features(memory.get_all_content_as_tensor())
+            entropy_dist = dist.entropy()
             
             for _ in range(opt.frame_skip):
                 n_state, reward, terminated, truncated, info = env.step([action.detach().item()])
@@ -78,7 +79,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
                 tot_loss = lc * opt.coeff_critic + la - dist.entropy() * opt.coeff_entropy
                 tot_loss_critic, tot_loss_actor = update_a2c(tot_loss, optimizer)
             else:
-                update_eligibility(value, advantage, logprob, optimizer)
+                update_eligibility(value, advantage, logprob, entropy_dist, optimizer)
             
             if target:
                 update_target(target_critic, agent.critic, tau)  
@@ -145,12 +146,12 @@ def update_a2c(tot_loss, optimizer):
     tot_loss.backward()
     optimizer.step()
 
-def update_eligibility(value, advantage, logprob, optimizer):
+def update_eligibility(value, advantage, logprob, entropy_dist, optimizer):
     optimizer.zero_grad()
     value.backward()
     logprob.backward()
     with torch.no_grad():
-        optimizer.step(advantage)
+        optimizer.step(advantage, entropy_dist)
         
 def save_models_(opt,models_dict, agent, icm):
     models_dict['actor'] = agent.actor.state_dict()
@@ -219,7 +220,8 @@ def createModules(opt, feature_dim, action_dim, encoder, eligibility_traces, dev
 
     else:
         critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler = createschedulers(opt)
-        optimizer = CustomAdamEligibility(actor, critic, device, critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, gamma)
+        entropy = (opt.coeff_entropy != 0)
+        optimizer = CustomAdamEligibility(actor, critic, device, critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy, opt.coeff_entropy, gamma)
         schedulders = [critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler]
     return agent,optimizer, icm, icm_optimizer, target_critic, schedulders
         

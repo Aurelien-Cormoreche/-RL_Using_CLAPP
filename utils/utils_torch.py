@@ -95,7 +95,7 @@ class CustomWarmupCosineAnnealing(CustomComposeSchedulers):
 
 class CustomAdamEligibility():
     
-    def __init__(self, actor, critic, device, lr_w_schedule, lr_theta_schedule, beta1_w_schedule, beta1_theta_schedule, gamma,use_second_order = False, beta2 = 0.999):
+    def __init__(self, actor, critic, device, lr_w_schedule, lr_theta_schedule, beta1_w_schedule, beta1_theta_schedule, entropy, coeff_entropy, gamma,use_second_order = False, beta2 = 0.999):
         self.actor = actor
         self.critic = critic
         self.device = device
@@ -106,6 +106,8 @@ class CustomAdamEligibility():
         self.lr_w_schedule = lr_w_schedule
         self.lr_theta_schedule = lr_theta_schedule
         self.use_second_order = use_second_order
+        self.entropy = entropy
+        self.coeff_entropy = coeff_entropy
         self.z_w = [torch.zeros_like(p, device= device) for p in self.critic.parameters()]
         self.z_theta = [torch.zeros_like(p, device= device) for p in  self.actor.parameters()]
 
@@ -119,7 +121,7 @@ class CustomAdamEligibility():
         self.z_w = [z.zero_() for z in self.z_w]
         self.z_theta = [z.zero_() for z in self.z_theta]
 
-    def step(self, advantage):
+    def step(self, advantage, entropy):
 
         eps = 1e-8
 
@@ -128,6 +130,10 @@ class CustomAdamEligibility():
 
         z_w_hat = [z * (advantage) for z in self.z_w]
         z_theta_hat = [z * (advantage) for z in self.z_theta]
+
+        if self.entropy:
+            self.zero_grad()
+            entropy.backward()
         
         if self.use_second_order:
             self.v_w = [z.lerp(torch.square(g), self.beta2) for z, g in zip(self.v_w, z_w_hat)]
@@ -145,7 +151,10 @@ class CustomAdamEligibility():
         else:
             for p, z in zip(self.critic.parameters(), z_w_hat):
                 p.add_(self.lr_w_schedule.get_lr() * z)              
-            for p, z in zip( self.actor.parameters(), z_theta_hat):    
+            for p, z in zip( self.actor.parameters(), z_theta_hat):
+                term_to_add = z
+                if self.entropy:
+                    term_to_add += self.coeff_entropy * p.grad    
                 p.add_(self.lr_theta_schedule.get_lr() * z)
 
     def zero_grad(self):
