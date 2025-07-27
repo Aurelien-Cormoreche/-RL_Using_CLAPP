@@ -82,10 +82,8 @@ class CustomComposeSchedulers(CustomLrScheduler):
         return self.schedulers[self.current_idx].get_lr()
 
     def step_forward(self):
-        step =  super().step()
-        if step >= self.milestones[self.current_idx + 1]:
+        if self.step >= self.milestones[self.current_idx + 1]:
             self.current_idx += 1
-        return step
     
 
 class CustomWarmupCosineAnnealing(CustomComposeSchedulers):

@@ -13,9 +13,10 @@ def load_file(filepath):
     data = np.loadtxt(filepath)
     return data[:, 1]
 
-def compute_moving_average(filepath,window_size):
+def compute_moving_average(filepath,window_size, remove_outliers = False, outliers_level = 600):
     data = load_file(filepath)
-
+    if remove_outliers:
+        data = data[data <= outliers_level]
     return np.convolve(data, np.ones(window_size)/window_size, mode= 'valid')
 
 def visualize_weights(filepath, model_name):
@@ -43,8 +44,8 @@ def plot_matrix(file_features):
 
 def meusureIntensityAtPositions(file_features, file_model, model_name):
     features = torch.from_numpy(np.load(file_features)).to('mps')
-    model = torch.load(file_model, weights_only= False)[model_name]
-    weights = model['layer.weight']
+    model = torch.load(file_model, weights_only= False, map_location=torch.device('mps'))[model_name]
+    weights = model['layer.weight'][0]
     
     cos_sim = (features @ weights.T).cpu()
     
@@ -92,7 +93,7 @@ def meusureIntensityAtPositions(file_features, file_model, model_name):
 
 
 if __name__ == '__main__':
- 
+    '''
     tab = [1,10,20,50,100,300,500]
     for t in tab:
         
@@ -114,27 +115,27 @@ if __name__ == '__main__':
 
         highlambda = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/a82399406d664aeb96cee572193d36eb/metrics/length_episode', t)
         decayinglambda = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/38b439f35bc4486fb4888ea07df8ef56/metrics/length_episode', t)
+        decayinglambda_decaying_lr_warmup= compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/df3d79b191724e0393e02b832144f922/metrics/length_episode', t)
+        long_decaying_lamd_warmup = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/ce1f156b52274e43b088c162292f3965/metrics/length_episode', t)
 
-        plt.plot(mv_avg_CLAPP)
+        #plt.plot(mv_avg_CLAPP)
         #plt.plot(mv_avg_Resnet)
         #plt.plot(mv_avg_a2c_fs)
        
         #plt.plot(mv_avg_a2c_fs_mf)
         #plt.plot(mv_avg_a2c_fs_mf_2)
         #plt.plot(mean_normalized_good)
-        #plt.plot(mean_normalized_good)
-        plt.plot(highlambda)
-        plt.plot(decayinglambda)
-       
+        plt.plot(mean_normalized_good)
+        #plt.plot(highlambda)
+        #plt.plot(decayinglambda)
+        plt.plot(long_decaying_lamd_warmup)
        
         plt.show()
 
 
     '''
     #visualize_weights('trained_models/saved_from_run.pt', 'critic')
-    meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', 'trained_models/EL_trace_8000_runs.pt', 'critic')
+    meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', '/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/saved_from_run.pt', 'actor')
 
 
-    plot_matrix('trained_models/encoded_features_CLAPP.npy')
-
-    '''
+    #plot_matrix('trained_models/encoded_features_CLAPP.npy')
