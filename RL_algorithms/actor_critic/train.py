@@ -149,7 +149,7 @@ def update_a2c(tot_loss, optimizer):
 def update_eligibility(value, advantage, logprob, entropy_dist, optimizer):
     optimizer.zero_grad()
     value.backward()
-    logprob.backward()
+    logprob.backward(retain_graph = True)
     with torch.no_grad():
         optimizer.step(advantage, entropy_dist)
         
@@ -219,10 +219,9 @@ def createModules(opt, feature_dim, action_dim, encoder, eligibility_traces, dev
         optimizer = torch.optim.AdamW(agent.parameters(), lr = opt.lr)
 
     else:
-        critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler = createschedulers(opt)
-        entropy = (opt.coeff_entropy != 0)
-        optimizer = CustomAdamEligibility(actor, critic, device, critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy, opt.coeff_entropy, gamma)
-        schedulders = [critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler]
+        critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy_coeff_scheduler = createschedulers(opt)
+        optimizer = CustomAdamEligibility(actor, critic, device, critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, opt.entropy, entropy_coeff_scheduler, gamma)
+        schedulders = [critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy_coeff_scheduler]
     return agent,optimizer, icm, icm_optimizer, target_critic, schedulders
         
 def createschedulers(opt):
@@ -233,7 +232,7 @@ def createschedulers(opt):
         if type == 'cosine_annealing':
             return CustomLrSchedulerCosineAnnealing(initial_lr, num_epochs, end_lr)
         if type == 'warmup_cosine_annealing':
-            return CustomWarmupCosineAnnealing(initial_lr, max_lr,warmup_len, num_epochs, end_lr)
+            return CustomWarmupCosineAnnealing(initial_lr, max_lr, warmup_len, num_epochs, end_lr)
         else:
             print('constant scheduler')
             return CustomLrSchedulerLinear(initial_lr, initial_lr, num_epochs)
@@ -242,8 +241,9 @@ def createschedulers(opt):
     actor_lr_scheduler = defineScheduler(opt.schedule_type_actor, opt.actor_lr_i, opt.actor_lr_e, opt.num_epochs, opt.actor_lr_m, opt.actor_len_w)
     theta_lam_scheduler =defineScheduler(opt.schedule_type_theta_lam, opt.t_delay_theta_i, opt.t_delay_theta_e, opt.num_epochs, opt.theta_l_m, opt.theta_l_len_w)
     w_lam_scheduler = defineScheduler(opt.schedule_type_w_lam, opt.t_delay_w_i, opt.t_delay_w_e, opt.num_epochs, opt.w_l_m, opt.w_l_len_w)
+    entropy_coeff_scheduler = defineScheduler(opt.schedule_type_entropy, opt.coeff_entropy_i, opt.coeff_entropy_e, opt.num_epochs, opt.coeff_entropy_m, opt.coeff_entropy_len_w)
 
-    return critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler
+    return critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy_coeff_scheduler
     
 def get_features_from_state(opt,n_state, agent, device):
     n_state_t = torch.tensor(n_state, device= device, dtype= torch.float32)

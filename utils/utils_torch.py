@@ -95,7 +95,7 @@ class CustomWarmupCosineAnnealing(CustomComposeSchedulers):
 
 class CustomAdamEligibility():
     
-    def __init__(self, actor, critic, device, lr_w_schedule, lr_theta_schedule, beta1_w_schedule, beta1_theta_schedule, entropy, coeff_entropy, gamma,use_second_order = False, beta2 = 0.999):
+    def __init__(self, actor, critic, device, lr_w_schedule, lr_theta_schedule, beta1_w_schedule, beta1_theta_schedule, entropy, entropy_scheduler, gamma,use_second_order = False, beta2 = 0.999):
         self.actor = actor
         self.critic = critic
         self.device = device
@@ -107,7 +107,7 @@ class CustomAdamEligibility():
         self.lr_theta_schedule = lr_theta_schedule
         self.use_second_order = use_second_order
         self.entropy = entropy
-        self.coeff_entropy = coeff_entropy
+        self.entropy_scheduler = entropy_scheduler
         self.z_w = [torch.zeros_like(p, device= device) for p in self.critic.parameters()]
         self.z_theta = [torch.zeros_like(p, device= device) for p in  self.actor.parameters()]
 
@@ -154,8 +154,8 @@ class CustomAdamEligibility():
             for p, z in zip( self.actor.parameters(), z_theta_hat):
                 term_to_add = z
                 if self.entropy:
-                    term_to_add += self.coeff_entropy * p.grad    
-                p.add_(self.lr_theta_schedule.get_lr() * z)
+                    term_to_add += self.entropy_scheduler.get_lr() * p.grad    
+                p.add_(self.lr_theta_schedule.get_lr() * term_to_add)
 
     def zero_grad(self):
         self.actor.zero_grad()

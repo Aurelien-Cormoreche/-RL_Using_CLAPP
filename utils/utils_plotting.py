@@ -93,7 +93,7 @@ def meusureIntensityAtPositions(file_features, file_model, model_name):
 
 
 if __name__ == '__main__':
-    '''
+
     tab = [1,10,20,50,100,300,500]
     for t in tab:
         
@@ -117,7 +117,11 @@ if __name__ == '__main__':
         decayinglambda = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/38b439f35bc4486fb4888ea07df8ef56/metrics/length_episode', t)
         decayinglambda_decaying_lr_warmup= compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/df3d79b191724e0393e02b832144f922/metrics/length_episode', t)
         long_decaying_lamd_warmup = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/ce1f156b52274e43b088c162292f3965/metrics/length_episode', t)
-
+        small_lambda =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/dd7eeaa3527c49a08108886edce08a90/metrics/length_episode', t)
+        
+        noentropy = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/e78e198e983f45a39c0c04a8ef03172a/metrics/length_episode', t)
+        noentropy2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/ec5dfa9d76ca430a9c9c4b469c364a0f/metrics/length_episode', t)
+        entropy = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/1f07c01d47a042c0bc8c4adb8b2d8920/metrics/length_episode', t)
         #plt.plot(mv_avg_CLAPP)
         #plt.plot(mv_avg_Resnet)
         #plt.plot(mv_avg_a2c_fs)
@@ -125,10 +129,14 @@ if __name__ == '__main__':
         #plt.plot(mv_avg_a2c_fs_mf)
         #plt.plot(mv_avg_a2c_fs_mf_2)
         #plt.plot(mean_normalized_good)
-        plt.plot(mean_normalized_good)
+        #plt.plot(mean_normalized_good)
         #plt.plot(highlambda)
         #plt.plot(decayinglambda)
-        plt.plot(long_decaying_lamd_warmup)
+        #plt.plot(long_decaying_lamd_warmup)
+        #plt.plot(small_lambda)
+        #plt.plot(noentropy)
+        #plt.plot(noentropy2)
+        plt.plot(entropy)
        
         plt.show()
 
@@ -139,3 +147,5 @@ if __name__ == '__main__':
 
 
     #plot_matrix('trained_models/encoded_features_CLAPP.npy')
+
+    '''
