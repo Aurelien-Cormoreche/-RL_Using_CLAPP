@@ -32,7 +32,7 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
 
     for epoch in tqdm.tqdm(range(opt.num_epochs)):
         
-        state, _ = env.reset(seed = opt.seed + epoch)
+        state, _ = env.reset(seed = opt.seed + epoch * opt.seed)
         features = get_features_from_state(opt, state, agent, device)
         memory = TorchDeque(maxlen= opt.nb_stacked_frames, num_features= feature_dim, device= device, dtype= torch.float32)
         memory.fill(features)

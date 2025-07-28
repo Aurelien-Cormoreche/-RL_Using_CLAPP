@@ -45,7 +45,7 @@ def plot_matrix(file_features):
 def meusureIntensityAtPositions(file_features, file_model, model_name):
     features = torch.from_numpy(np.load(file_features)).to('mps')
     model = torch.load(file_model, weights_only= False, map_location=torch.device('mps'))[model_name]
-    weights = model['layer.weight'][0]
+    weights = model['layer.weight'][1]
     
     cos_sim = (features @ weights.T).cpu()
     
@@ -74,7 +74,7 @@ def meusureIntensityAtPositions(file_features, file_model, model_name):
             color = cmap((val - vmin) / (vmax - vmin))  # Normalize for colormap
 
             # Draw arrow
-            ax.arrow(x, y, 0.2 * dx, 0.2 * dy, head_width=0.05, color=color)
+            ax.arrow(x, -y, 0.2 * dx, 0.2 * dy, head_width=0.05, color=color)
 
     # Set plot limits and aspect
     ax.set_aspect('equal')
@@ -96,10 +96,10 @@ if __name__ == '__main__':
 
     tab = [1,10,20,50,100,300,500]
     for t in tab:
-        
+        '''
         mv_avg_CLAPP = compute_moving_average('mlruns/244787145723528822/e677b4afb3e349e48481f15f21970daf/metrics/run length', t)
         mv_avg_Resnet = compute_moving_average('mlruns/873129205249233078/08d90e56b9d84e019e5ccee9e9ecc254/metrics/run length',t)
-        #mv_avg_a2c =  compute_moving_average('mlruns/244787145723528822/ef58ac2d07e343989ec5dcf2cde369d2/metrics/length_episode',t)
+        mv_avg_a2c =  compute_moving_average('mlruns/244787145723528822/ef58ac2d07e343989ec5dcf2cde369d2/metrics/length_episode',t)
         mv_avg_a2c_fs =  3 * compute_moving_average('mlruns/244787145723528822/fc50ad63a7a542158ae5073c793bc890/metrics/length_episode',t)
         mv_avg_a2c_fs_mf =  compute_moving_average('mlruns/244787145723528822/4c01db63f6804de39fd9106b7812184a/metrics/length_episode',t)
         mv_avg_a2c_fs_mf_2 =  compute_moving_average('mlruns/244787145723528822/2cd2bba123b046c693459074b4050ca2/metrics/length_episode',t)
@@ -118,10 +118,12 @@ if __name__ == '__main__':
         decayinglambda_decaying_lr_warmup= compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/df3d79b191724e0393e02b832144f922/metrics/length_episode', t)
         long_decaying_lamd_warmup = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/ce1f156b52274e43b088c162292f3965/metrics/length_episode', t)
         small_lambda =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/dd7eeaa3527c49a08108886edce08a90/metrics/length_episode', t)
-        
+        '''
         noentropy = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/e78e198e983f45a39c0c04a8ef03172a/metrics/length_episode', t)
         noentropy2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/ec5dfa9d76ca430a9c9c4b469c364a0f/metrics/length_episode', t)
-        entropy = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/1f07c01d47a042c0bc8c4adb8b2d8920/metrics/length_episode', t)
+        entropy = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/a31e31a9817940b78e273326e95966c0/metrics/length_episode', t)
+        entropy2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/e53abdc9a3a44311a0ce5327532f0888/metrics/length_episode', t)
+        #higherLr2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/ff2ff7a024c74020836a3313a51ede45/metrics/length_episode', t) 
         #plt.plot(mv_avg_CLAPP)
         #plt.plot(mv_avg_Resnet)
         #plt.plot(mv_avg_a2c_fs)
@@ -137,6 +139,8 @@ if __name__ == '__main__':
         #plt.plot(noentropy)
         #plt.plot(noentropy2)
         plt.plot(entropy)
+        plt.plot(entropy2)
+        #plt.plot(higherLr2)
        
         plt.show()
 

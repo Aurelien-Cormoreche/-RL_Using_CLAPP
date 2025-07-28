@@ -127,7 +127,8 @@ class CustomAdamEligibility():
 
         self.z_w = [z.mul_(self.beta1_w_schedule.get_lr() * self.gamma).add_(p.grad) for z, p in zip(self.z_w, self.critic.parameters())]
         self.z_theta = [z.mul_(self.beta1_theta_schedule.get_lr() * self.gamma).add_(p.grad)  for z, p in zip(self.z_theta, self.actor.parameters())]
-
+        for p in self.critic.parameters(): print(p.grad.min())
+        print(advantage)
         z_w_hat = [z * (advantage) for z in self.z_w]
         z_theta_hat = [z * (advantage) for z in self.z_theta]
 
@@ -154,7 +155,7 @@ class CustomAdamEligibility():
             for p, z in zip( self.actor.parameters(), z_theta_hat):
                 term_to_add = z
                 if self.entropy:
-                    term_to_add += self.entropy_scheduler.get_lr() * p.grad    
+                    term_to_add += self.entropy_scheduler.get_lr() * p.grad 
                 p.add_(self.lr_theta_schedule.get_lr() * term_to_add)
 
     def zero_grad(self):
