@@ -15,8 +15,7 @@ class Trainer:
         self.action_dim = action_dim
 
         self.algorithm = opt.algorithm
-        
-        if self.algorithm == 'actor_critic' or 'actor_critic_e':
+        if self.algorithm == 'actor_critic' or self.algorithm == 'actor_critic_e':
             self.training_func = actor_critic_train
             self.call_func = self.__train_online
             self.metrics_func = actor_critic_metrics

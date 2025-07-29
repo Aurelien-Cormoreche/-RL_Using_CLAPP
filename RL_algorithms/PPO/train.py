@@ -30,7 +30,7 @@ def ppo_log_params(opt):
     )
 
 def ppo_metrics(epoch, variables):
-    _, _, _, _, tot_loss_actor, tot_loss_critic, tot_loss, tot_entropy, samples_num, update, num_updates = variables
+    _, _, _, _, _, _, tot_loss_actor, tot_loss_critic, tot_loss, tot_entropy, samples_num, update, num_updates = variables
     mlflow.log_metrics(
         {
         'avg_loss_actor_batch' : tot_loss_actor/ samples_num,
@@ -53,7 +53,7 @@ def ppo_init(opt, feature_dim, action_dim, envs):
     is_next_observation_terminal_t = torch.zeros(opt.num_envs, device= opt.device)
     count_num_steps_env = torch.zeros((opt.num_envs,1), dtype= torch.float32, device= opt.device)
     nums_run = 0
-    return feature_dim, action_dim, states_t, is_next_observation_terminal_t, count_num_steps_env, nums_run
+    return feature_dim, action_dim, states_t, is_next_observation_terminal_t, count_num_steps_env, nums_run, 0, 0, 0, 0, 0, 0, 0
 
 def ppo_modules(opt, variables, encoder, models_dict):
     feature_dim = variables[0]
@@ -134,7 +134,7 @@ def ppo_collector(opt, envs, modules, variables):
         agent = modules[0]
         num_envs = opt.num_envs
         len_rollouts = opt.len_rollout
-        feature_dim, action_dim, states_t, is_next_observation_terminal_t, count_num_steps_env, nums_run = variables
+        feature_dim, action_dim, states_t, is_next_observation_terminal_t, count_num_steps_env, nums_run, _, _, _, _, _, _, _ = variables
 
         batch_features = torch.empty((len_rollouts, num_envs, feature_dim ), device= opt.device)
         batch_log_probs = torch.empty((len_rollouts, num_envs), device= opt.device)
@@ -317,7 +317,7 @@ def compute_advantages(len_rollouts, num_envs, gamma, lambda_gae, device, is_nex
 
 def ppo_updator(opt, modules, variables, collected):
 
-    feature_dim, action_dim, states_t, is_next_observation_terminal_t, count_num_steps_env, _, _, _, _, _, _, _, _ = variables
+    feature_dim, action_dim, _, _, count_num_steps_env, _, _, _, _, _, _, _, _ = variables
 
     (batch_features, 
         batch_log_probs,
@@ -332,7 +332,7 @@ def ppo_updator(opt, modules, variables, collected):
     agent = modules[0]
     agent_optimizer = modules[2]
 
-    samples_num = opt.len_rollouts * opt.num_envs
+    samples_num = opt.len_rollout * opt.num_envs
     indices = np.arange(samples_num)
 
     tot_loss_actor = 0
