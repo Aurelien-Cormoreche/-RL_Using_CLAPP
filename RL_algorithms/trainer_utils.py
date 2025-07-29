@@ -12,7 +12,7 @@ def get_features_from_state(opt,n_state, agent, device):
     return features
     
 
-def save_models_(opt,models_dict, agent, icm):
+def save_models_(opt, models_dict, agent, icm):
     models_dict['actor'] = agent.actor.state_dict()
     models_dict['critic'] = agent.critic.state_dict()
     if opt.use_ICM:

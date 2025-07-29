@@ -41,6 +41,8 @@ def parsing():
     parser.add_argument('--PCA', action='store_true', help= 'use PCA for ICM')
     parser.add_argument('--lr_scheduler', action= 'store_true', help= 'add a lr scheduler')
     parser.add_argument('--normalize_features', action= 'store_true', help='normalize the features from the encoder')
+    parser.add_argument('--target', default= True, type= bool, help='wether to use a target network')
+    parser.add_argument('--tau', default= 0.05, type= float, help='by how much we update the taget network')
 
     parser.add_argument('--schedule_type_critic', default='linear', help='schedule type for the critic learning rate')
     parser.add_argument('--critic_lr_i', type=float, default=1e-4, help='initial learning rate for the critic')

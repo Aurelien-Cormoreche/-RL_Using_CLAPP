@@ -1,8 +1,8 @@
 import os
 
-from RL_algorithms.actor_critic.train import train_actor_critic
+#from RL_algorithms.actor_critic.train import train_actor_critic
 from RL_algorithms.PPO.train import train_PPO
-
+from RL_algorithms.trainer import Trainer
 from utils.load_standalone_model import load_model
 from utils.utils import save_models, create_ml_flow_experiment, parsing, create_envs, launch_experiment, createPCA
 
@@ -40,27 +40,10 @@ def train(opt, envs, model_path, device, models_dict):
     
     action_dim = envs.single_action_space.n
     feature_dim = feature_dim * opt.nb_stacked_frames
+    
+    trainer = Trainer(opt, envs, encoder, feature_dim, action_dim)
+    trainer.train()
 
-
-    if opt.track_run:
-        mlflow.start_run(run_name= opt.run_name)
-        mlflow.log_params(
-                {
-                    'algorithm' : opt.algorithm,
-                    'num_envs' : opt.num_envs,
-                    'greyscale' : opt.greyscale,
-                    'encoder': opt.encoder,
-                    'num_epochs': opt.num_epochs,
-                    'gamma': gamma,
-                    'keep_patches' : opt.keep_patches, 
-                    'seed' : opt.seed,
-                    'visible_reward' : opt.visible_reward,
-                    'normalize_features' : opt.normalize_features             
-                }
-        )
-    pca_module = None
-    if opt.PCA:
-        pca_module = createPCA(args, f'trained_models/encoded_features_{opt.encoder}', envs.env.envs[0], encoder, opt.ICM_latent_dim)
     if opt.algorithm.startswith("actor_critic"):
         train_actor_critic(opt, envs, device, encoder, gamma, models_dict, True , action_dim,feature_dim, pca_module)
     else:
@@ -85,6 +68,7 @@ def main(args):
     else:
         device = torch.device("cpu")
         print('cpu device no seed set')
+    args.device = device
 
 
     model_path = os.path.abspath('trained_models')

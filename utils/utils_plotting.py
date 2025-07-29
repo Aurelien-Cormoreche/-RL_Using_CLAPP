@@ -99,7 +99,7 @@ def count_steps(frameskip_num, file):
 
 if __name__ == '__main__':
 
-    tab = [1,10,20,50,100,300,500]
+    tab = [1,300,500]
     for t in tab:
         '''
         mv_avg_CLAPP = compute_moving_average('mlruns/244787145723528822/e677b4afb3e349e48481f15f21970daf/metrics/run length', t)
@@ -128,11 +128,11 @@ if __name__ == '__main__':
         noentropy2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/ec5dfa9d76ca430a9c9c4b469c364a0f/metrics/length_episode', t)
         entropy = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/a31e31a9817940b78e273326e95966c0/metrics/length_episode', t)
         entropy2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/e53abdc9a3a44311a0ce5327532f0888/metrics/length_episode', t)
-       
-        baselinePPO = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/332671571023767635/295debefa8ca4e19866a0d75fc055ba2/metrics/run length', t)
-        '''
+       '''
+        #baselinePPO = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/332671571023767635/295debefa8ca4e19866a0d75fc055ba2/metrics/run length', t)
+ 
         #longtrain = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/18d5c9c052354170864156ed7bb385fb/metrics/length_episode', t)
-        #longtrain2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/d889e0f834f04ed6973d6db00e43635a/metrics/length_episode', t)
+        longtrain2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/d889e0f834f04ed6973d6db00e43635a/metrics/length_episode', t)
         
         #higherLr2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/ff2ff7a024c74020836a3313a51ede45/metrics/length_episode', t) 
         
@@ -158,14 +158,14 @@ if __name__ == '__main__':
         #plt.plot(noentropy2)
         #plt.plot(entropy)
         #plt.plot(entropy2)
-       #plt.plot(baselinePPO)
+        #plt.plot(baselinePPO)
   
         #plt.plot(longtrain)
         #plt.plot(longtrain2)
         plt.plot(longtrainresnet)
-        plt.plot(longtrain3)
+        #plt.plot(longtrain3)
         plt.plot(longtrain4)
-        plt.plot(longtrain5)
+        #plt.plot(longtrain5)
         plt.show()
 
     #print(count_steps(3,'/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/d889e0f834f04ed6973d6db00e43635a/metrics/length_episode'))

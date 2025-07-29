@@ -9,95 +9,80 @@ import gymnasium as gym
 from ..ac_agent import AC_Agent
 from ..models import CriticModel
 from ..exploration_modules import ICM, update_ICM_predictor
-
+from ..trainer_utils import update_target, get_features_from_state
 from utils.utils import save_models
 from utils.utils_torch import TorchDeque, CustomAdamEligibility, CustomLrSchedulerLinear, CustomLrSchedulerCosineAnnealing, CustomWarmupCosineAnnealing
 
-def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, action_dim, feature_dim, pca_module = None, tau = 0.05, no_critic = False):
-    assert env.num_envs == 1 
-    if opt.algorithm == "actor_critic_e":
-        print("using eligibility traces")
-        eligibility_traces = True
-    else:
-        print("not using eligibility traces")
-        eligibility_traces = False
-    if opt.track_run:
-        log_params(opt)
+def actor_critic_train(opt, envs, modules, variables, epoch):
+    agent, icm, optimizer, icm_optimizer, target_critic, schedulders   = modules
+    feature_dim, action_dim, eligibility_trace, _ , _ , _, _ = variables
+    state, _ = envs.reset(seed = opt.seed + epoch * opt.seed)
+    features = get_features_from_state(opt, state, agent, opt.device)
+    memory = TorchDeque(maxlen= opt.nb_stacked_frames, num_features= feature_dim, device= opt.device, dtype= torch.float32)
+    memory.fill(features)
+        
+    done = False
+    total_reward = 0
+    length_episode = 0
+    tot_loss_critic = 0
+    tot_loss_actor = 0
+
+    if eligibility_trace:
+        optimizer.reset_zw_ztheta()
+
+    while not done:   
+        action, logprob, dist = agent.get_action_and_log_prob_dist_from_features(memory.get_all_content_as_tensor())
+        value = agent.get_value_from_features(memory.get_all_content_as_tensor())
+        entropy_dist = dist.entropy()
+            
+        for _ in range(opt.frame_skip):
+            n_state, reward, terminated, truncated, _ = envs.step([action.detach().item()])
+            length_episode += 1
+            if terminated or truncated:
+                break
+                       
+        reward = reward[0]
+        terminated = terminated[0]
+        truncated = truncated[0]
+            
+        old_features = features
+        features = get_features_from_state(opt, n_state, agent, opt.device)
+        memory.push(features)
+
+        if opt.use_ICM:
+            predicted, _ = icm(old_features,features, action)
+            reward += opt.alpha_intrinsic_reward * update_ICM_predictor(predicted, features, icm_optimizer, icm.encoder_model, opt.device)
+            for _ in range(opt.num_updates_ICM - 1):
+                update_ICM_predictor(icm(old_features,features,action)[0], features, icm_optimizer, icm.encoder_model, opt.device)
+
+        advantage, delayed_value = advantage_function(reward, value, terminated, truncated, agent, memory, opt.target, target_critic, opt.gamma)
+            
+        if not eligibility_trace:
+            lc = loss_critic(value, delayed_value)
+            la = loss_actor(logprob, logprob, advantage, opt.actor_eps)
+            tot_loss = lc * opt.coeff_critic + la - dist.entropy() * opt.coeff_entropy
+            loss_critic,loss_actor = update_a2c(tot_loss, optimizer)
+            tot_loss_actor += loss_actor
+            tot_loss_critic += loss_critic
+        else:
+            update_eligibility(value, advantage, logprob, entropy_dist, optimizer)
+            
+        if opt.target:
+            update_target(target_critic, agent.critic, opt.tau) 
+        
+        total_reward += reward
+        done= terminated or truncated 
+        
+        if opt.render:
+            envs.render()
     
-    agent, optimizer, icm, icm_optimizer, target_critic, schedulders = createModules(opt, feature_dim, action_dim, encoder, 
-                                                                       eligibility_traces, device, pca_module, target, models_dict, gamma)
+    for scheduler in schedulders: scheduler.step_forward()
 
-    step = torch.zeros([1], device= device)
+    return feature_dim, action_dim, eligibility_trace, length_episode, total_reward, tot_loss_actor, tot_loss_critic
 
-    for epoch in tqdm.tqdm(range(opt.num_epochs)):
-        
-        state, _ = env.reset(seed = opt.seed + epoch * opt.seed)
-        features = get_features_from_state(opt, state, agent, device)
-        memory = TorchDeque(maxlen= opt.nb_stacked_frames, num_features= feature_dim, device= device, dtype= torch.float32)
-        memory.fill(features)
-        
-        done = False
-        total_reward = 0
-        length_episode = 0
-        tot_loss_critic = 0
-        tot_loss_actor = 0
-
-        if eligibility_traces:
-            optimizer.reset_zw_ztheta()
-
-        while not done:   
-            action, logprob, dist = agent.get_action_and_log_prob_dist_from_features(memory.get_all_content_as_tensor())
-            value = agent.get_value_from_features(memory.get_all_content_as_tensor())
-            entropy_dist = dist.entropy()
-            
-            for _ in range(opt.frame_skip):
-                n_state, reward, terminated, truncated, _ = env.step([action.detach().item()])
-                length_episode += 1
-                if terminated or truncated:
-                    break
-            
-            reward = reward[0]
-            terminated = terminated[0]
-            truncated = truncated[0]
-            
-            old_features = features
-            features = get_features_from_state(opt, n_state, agent, device)
-            memory.push(features)
-
-            if opt.use_ICM:
-                predicted, _ = icm(old_features,features, action)
-                reward += opt.alpha_intrinsic_reward * update_ICM_predictor(predicted, features, icm_optimizer, icm.encoder_model, device)
-                for _ in range(opt.num_updates_ICM - 1):
-                    update_ICM_predictor(icm(old_features,features,action)[0], features, icm_optimizer, icm.encoder_model, device)
-
-            advantage, delayed_value = advantage_function(reward, value, terminated, truncated, agent, memory, target, target_critic, gamma)
-            
-            if not eligibility_traces:
-                lc = loss_critic(value, delayed_value)
-                la = loss_actor(logprob, logprob, advantage, opt.actor_eps)
-                tot_loss = lc * opt.coeff_critic + la - dist.entropy() * opt.coeff_entropy
-                tot_loss_critic, tot_loss_actor = update_a2c(tot_loss, optimizer)
-            else:
-                update_eligibility(value, advantage, logprob, entropy_dist, optimizer)
-            
-            if target:
-                update_target(target_critic, agent.critic, tau)  
-         
-            total_reward += reward
-            step += 1
-            done= terminated or truncated
-            
-            for s in schedulders : 
-                s.step_forward()
-
-            if opt.render:
-               env.render()       
-        
-   
-        if epoch % opt.checkpoint_interval == 0:
-            save_models_(opt, models_dict, agent, icm)
-        if opt.track_run:
-            mlflow.log_metrics(
+def actor_critic_metrics(opt, epoch, variables):
+    _, _, _, length_episode, total_reward, tot_loss_actor, tot_loss_critic = variables
+    mlflow.log_metrics( 
                 {
                     'reward': total_reward,
                     'loss_actor': tot_loss_actor/length_episode,
@@ -106,13 +91,18 @@ def train_actor_critic(opt, env, device, encoder, gamma, models_dict, target, ac
                 },
                 step= epoch
             )
-            
-def update_target(target_critic, critic, tau):
-    target_state_dict = target_critic.state_dict()
-    critic_state_dict = critic.state_dict()
-    for key in critic_state_dict:
-        target_state_dict[key] = tau *critic_state_dict[key] + (1 - tau) * target_state_dict[key] 
-    target_critic.load_state_dict(target_state_dict)
+def actor_critic_init(opt, feature_dim, action_dim, envs):
+    assert opt.num_envs == 1
+
+    if opt.algorithm == "actor_critic_e":
+        print("using eligibility traces")
+        eligibility_traces = True
+    else:
+        print("not using eligibility traces")
+        eligibility_traces = False
+   
+    return feature_dim, action_dim, eligibility_traces, 0, 0, 0, 0
+
 
 def advantage_function(reward, value, terminated, truncated, agent, memory, target, target_critic, gamma):
     with torch.no_grad():
@@ -152,14 +142,8 @@ def update_eligibility(value, advantage, logprob, entropy_dist, optimizer):
     with torch.no_grad():
         optimizer.step(advantage, entropy_dist)
         
-def save_models_(opt,models_dict, agent, icm):
-    models_dict['actor'] = agent.actor.state_dict()
-    models_dict['critic'] = agent.critic.state_dict()
-    if opt.use_ICM:
-        models_dict['icm_predictor'] = icm.predictor_model.state_dict()
-    save_models(models_dict)
 
-def log_params(opt):
+def actor_critic_log_params(opt):
     mlflow.log_params(
         {
         'actor_lr' : opt.actor_lr_i,
@@ -197,20 +181,21 @@ def log_params(opt):
             'w_l_len_w': opt.w_l_len_w,
         })
 
-def createModules(opt, feature_dim, action_dim, encoder, eligibility_traces, device, pca_module, target, models_dict, gamma):
-    agent = AC_Agent(feature_dim, action_dim,None, encoder, opt.normalize_features).to(device)
+def actor_critic_modules(opt, variables, encoder, models_dict):
+    feature_dim, action_dim, eligibility_traces, _, _, _, _ = variables
+    agent = AC_Agent(feature_dim, action_dim,None, encoder, opt.normalize_features).to(opt.device)
     actor = agent.actor
     critic = agent.critic
     
     icm = None
     icm_optimizer = None
     if opt.use_ICM:
-        icm = ICM(action_dim, feature_dim, pca_module, opt.ICM_latent_dim, device).to(device)
+        icm = ICM(action_dim, feature_dim, pca_module, opt.ICM_latent_dim, opt.device).to(opt.device)
         icm_optimizer =  torch.optim.AdamW(icm.parameters(), lr = opt.icm_lr)
 
     target_critic = None
-    if target:
-        target_critic = CriticModel(feature_dim, None).to(device)
+    if opt.target:
+        target_critic = CriticModel(feature_dim, None).to(opt.device)
         target_critic.load_state_dict(critic.state_dict())
         models_dict['target'] = target_critic
 
@@ -219,9 +204,9 @@ def createModules(opt, feature_dim, action_dim, encoder, eligibility_traces, dev
 
     else:
         critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy_coeff_scheduler = createschedulers(opt)
-        optimizer = CustomAdamEligibility(actor, critic, device, critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, opt.entropy, entropy_coeff_scheduler, gamma)
+        optimizer = CustomAdamEligibility(actor, critic, opt.device, critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, opt.entropy, entropy_coeff_scheduler, opt.gamma)
         schedulders = [critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy_coeff_scheduler]
-    return agent,optimizer, icm, icm_optimizer, target_critic, schedulders
+    return agent,icm, optimizer,icm_optimizer, target_critic, schedulders
         
 def createschedulers(opt):
 
@@ -244,15 +229,7 @@ def createschedulers(opt):
 
     return critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy_coeff_scheduler
     
-def get_features_from_state(opt,n_state, agent, device):
-    n_state_t = torch.tensor(n_state, device= device, dtype= torch.float32)
-    if opt.greyscale:
-        n_state_t = torch.unsqueeze(n_state_t, dim= 1)
-    else:
-        n_state_t = n_state_t.reshape(n_state_t.shape[0], n_state_t.shape[3], n_state_t.shape[1], n_state_t.shape[2])
-    features = agent.get_features(n_state_t).flatten()
-    return features
-    
+
 
 
     
