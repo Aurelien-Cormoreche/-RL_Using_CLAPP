@@ -141,6 +141,8 @@ if __name__ == '__main__':
         longtrain4 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/f77a81c69a5b461c81b62532445bdfc0/metrics/length_episode', t)
         longtrain5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/5ddd53ad80d745929b0c1c83a1bc67eb/metrics/length_episode', t)
 
+        train_baseline = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/5605406ba03648778118105a0b800018/metrics/length_episode', t)
+        train_decay_real = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/4aec231385604a358640ffbb85b34876/metrics/length_episode', t)
         
         #plt.plot(mv_avg_CLAPP)
         #plt.plot(mv_avg_Resnet)
@@ -162,10 +164,12 @@ if __name__ == '__main__':
   
         #plt.plot(longtrain)
         #plt.plot(longtrain2)
-        plt.plot(longtrainresnet)
+        #plt.plot(longtrainresnet)
         #plt.plot(longtrain3)
-        plt.plot(longtrain4)
+        #plt.plot(longtrain4)
         #plt.plot(longtrain5)
+        plt.plot(train_baseline)
+        plt.plot(train_decay_real)
         plt.show()
 
     #print(count_steps(3,'/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/d889e0f834f04ed6973d6db00e43635a/metrics/length_episode'))

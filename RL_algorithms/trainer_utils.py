@@ -1,6 +1,8 @@
 import torch
 
 from utils.utils import save_models
+from utils.utils_torch import CustomLrSchedulerLinear, CustomLrSchedulerCosineAnnealing, CustomWarmupCosineAnnealing
+
 
 def get_features_from_state(opt,n_state, agent, device):
     n_state_t = torch.tensor(n_state, device= device, dtype= torch.float32)
@@ -27,4 +29,17 @@ def update_target(target_critic, critic, tau):
     for key in critic_state_dict:
         target_state_dict[key] = tau *critic_state_dict[key] + (1 - tau) * target_state_dict[key] 
     target_critic.load_state_dict(target_state_dict)
+
+
+def defineScheduler(type, initial_lr, end_lr, num_epochs, max_lr = None, warmup_len = None):
+    if type == 'linear':
+        return CustomLrSchedulerLinear(initial_lr, end_lr, num_epochs) 
+    if type == 'cosine_annealing':
+        return CustomLrSchedulerCosineAnnealing(initial_lr, num_epochs, end_lr)
+    if type == 'warmup_cosine_annealing':
+        return CustomWarmupCosineAnnealing(initial_lr, max_lr, warmup_len, num_epochs, end_lr)
+    else:
+        print('constant scheduler')
+        return CustomLrSchedulerLinear(initial_lr, initial_lr, num_epochs)  
+         
 

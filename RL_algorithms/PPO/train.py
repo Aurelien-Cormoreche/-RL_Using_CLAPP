@@ -6,7 +6,7 @@ import mlflow
 import numpy as np
 from tqdm import std
 
-from ..ac_agent import AC_Agent
+from ..agents import AC_Agent
 from utils.utils import save_models
 
 
@@ -55,7 +55,7 @@ def ppo_init(opt, feature_dim, action_dim, envs):
     nums_run = 0
     return feature_dim, action_dim, states_t, is_next_observation_terminal_t, count_num_steps_env, nums_run, 0, 0, 0, 0, 0, 0, 0
 
-def ppo_modules(opt, variables, encoder, models_dict):
+def ppo_modules(opt, variables, encoder, models_dict, envs):
     feature_dim = variables[0]
     action_dim = variables[1]
     agent = AC_Agent(feature_dim, action_dim, None, encoder, opt.normalize_features).to(opt.device)
@@ -130,7 +130,7 @@ def train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, featur
             save_models(models_dict)
             
 
-def ppo_collector(opt, envs, modules, variables):
+def ppo_collector(opt, envs, modules, variables, epoch):
         agent = modules[0]
         num_envs = opt.num_envs
         len_rollouts = opt.len_rollout
@@ -210,7 +210,7 @@ def ppo_collector(opt, envs, modules, variables):
         is_next_observation_terminal_t,
         nums_run)
 
-'''    
+ 
 def collect_rollouts(opt, envs, device, agent, len_rollouts, feature_dim, action_dim, gamma, n_states_t, is_next_observation_terminal_t, count_num_steps_env, nums_run):
     
         num_envs = opt.num_envs
@@ -290,7 +290,7 @@ def collect_rollouts(opt, envs, device, agent, len_rollouts, feature_dim, action
         is_next_observation_terminal_t,
         nums_run)
 
-'''
+
 def compute_advantages(len_rollouts, num_envs, gamma, lambda_gae, device, is_next_observation_terminal_t, next_value_t, is_episode_terminated_t, values_t, rewards):
      
     running_GAE = torch.zeros((num_envs), dtype= torch.float32, device= device)

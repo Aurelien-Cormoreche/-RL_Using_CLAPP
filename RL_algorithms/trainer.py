@@ -5,6 +5,8 @@ from .trainer_utils import save_models_
 
 from .actor_critic.train import actor_critic_train, actor_critic_metrics, actor_critic_log_params, actor_critic_modules, actor_critic_init
 from .PPO.train import ppo_log_params, ppo_modules, ppo_collector, ppo_updator, ppo_metrics, ppo_init
+from .Reinforce_baseline.train import reinforce_baseline_collector, reinforce_baseline_updator, reinforce_baseline_metrics, reinforce_baseline_modules, reinforce_baseline_init, reinforce_baseline_log_params
+
 class Trainer:
     def __init__(self, opt, envs,  encoder, feature_dim, action_dim):
        
@@ -31,7 +33,8 @@ class Trainer:
             self.ini_variables_func = ppo_init
             self.log_params_func = ppo_log_params
         elif self.algorithm == 'reinforce_baseline':
-            self.training_func = reinforce_baseline_train
+            self.collector = reinforce_baseline_collector
+            self.updator = reinforce_baseline_updator
             self.call_func = self.__train_offline
             self.metrics_func = reinforce_baseline_metrics
             self.modules_func = reinforce_baseline_modules
@@ -60,7 +63,7 @@ class Trainer:
        return self.training_func(self.opt, self.envs, self.modules, self.variables, self.epoch)
 
     def __train_offline(self):
-        collected = self.collector(self.opt, self.envs, self.modules, self.variables)
+        collected = self.collector(self.opt, self.envs, self.modules, self.variables, self.epoch)
         return self.updator(self.opt, self.modules, self.variables, collected)
 
     def __log_params(self):
@@ -84,10 +87,10 @@ class Trainer:
         self.log_params_func(self.opt)
     
     def __create_modules(self):
-        return self.modules_func(self.opt, self.variables, self.encoder, self.models_dict)
+        return self.modules_func(self.opt, self.variables, self.encoder, self.models_dict, self.envs)
 
-    def __log_metrics(self, variables):
-        self.metrics_func(self.opt, self.epoch, variables)
+    def __log_metrics(self):
+        self.metrics_func(self.opt, self.epoch, self.variables)
     
     def __initialize_variables(self):
         return self.ini_variables_func(self.opt, self.feature_dim, self.action_dim, self.envs)

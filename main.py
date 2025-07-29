@@ -29,25 +29,19 @@ def train(opt, envs, model_path, device, models_dict):
     else:
         print('no available encoder matched the argument')
         return
-    
 
     encoder = encoder.to(device)
     encoder.compile(backend="aot_eager")
 
-    
     for param in encoder.parameters():
         param.requires_grad = False
     
     action_dim = envs.single_action_space.n
     feature_dim = feature_dim * opt.nb_stacked_frames
-    
+
     trainer = Trainer(opt, envs, encoder, feature_dim, action_dim)
     trainer.train()
 
-    if opt.algorithm.startswith("actor_critic"):
-        train_actor_critic(opt, envs, device, encoder, gamma, models_dict, True , action_dim,feature_dim, pca_module)
-    else:
-        train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, feature_dim)
     envs.close()
  
 

@@ -6,12 +6,12 @@ import numpy as np
 from tqdm import std
 import gymnasium as gym
 
-from ..ac_agent import AC_Agent
+from ..agents import AC_Agent
 from ..models import CriticModel
 from ..exploration_modules import ICM, update_ICM_predictor
-from ..trainer_utils import update_target, get_features_from_state
-from utils.utils import save_models
-from utils.utils_torch import TorchDeque, CustomAdamEligibility, CustomLrSchedulerLinear, CustomLrSchedulerCosineAnnealing, CustomWarmupCosineAnnealing
+from ..trainer_utils import update_target, get_features_from_state, defineScheduler
+from utils.utils import save_models, createPCA
+from utils.utils_torch import TorchDeque, CustomAdamDuoEligibility, CustomLrSchedulerLinear, CustomLrSchedulerCosineAnnealing, CustomWarmupCosineAnnealing
 
 def actor_critic_train(opt, envs, modules, variables, epoch):
     agent, icm, optimizer, icm_optimizer, target_critic, schedulders   = modules
@@ -140,7 +140,7 @@ def update_eligibility(value, advantage, logprob, entropy_dist, optimizer):
     value.backward()
     logprob.backward(retain_graph = True)
     with torch.no_grad():
-        optimizer.step(advantage, entropy_dist)
+        optimizer.accumulate_and_step(advantage, entropy_dist)
         
 
 def actor_critic_log_params(opt):
@@ -181,7 +181,7 @@ def actor_critic_log_params(opt):
             'w_l_len_w': opt.w_l_len_w,
         })
 
-def actor_critic_modules(opt, variables, encoder, models_dict):
+def actor_critic_modules(opt, variables, encoder, models_dict, envs):
     feature_dim, action_dim, eligibility_traces, _, _, _, _ = variables
     agent = AC_Agent(feature_dim, action_dim,None, encoder, opt.normalize_features).to(opt.device)
     actor = agent.actor
@@ -190,6 +190,8 @@ def actor_critic_modules(opt, variables, encoder, models_dict):
     icm = None
     icm_optimizer = None
     if opt.use_ICM:
+        if opt.PCA:
+            pca_module = createPCA(opt, f'trained_models/encoded_features_{opt.encoder}', envs.env.envs[0], encoder, opt.ICM_latent_dim)
         icm = ICM(action_dim, feature_dim, pca_module, opt.ICM_latent_dim, opt.device).to(opt.device)
         icm_optimizer =  torch.optim.AdamW(icm.parameters(), lr = opt.icm_lr)
 
@@ -204,22 +206,12 @@ def actor_critic_modules(opt, variables, encoder, models_dict):
 
     else:
         critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy_coeff_scheduler = createschedulers(opt)
-        optimizer = CustomAdamEligibility(actor, critic, opt.device, critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, opt.entropy, entropy_coeff_scheduler, opt.gamma)
+        optimizer = CustomAdamDuoEligibility(actor, critic, opt.device, critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, opt.entropy, entropy_coeff_scheduler, opt.gamma)
         schedulders = [critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy_coeff_scheduler]
     return agent,icm, optimizer,icm_optimizer, target_critic, schedulders
-        
-def createschedulers(opt):
 
-    def defineScheduler(type, initial_lr, end_lr, num_epochs, max_lr = None, warmup_len = None):
-        if type == 'linear':
-            return CustomLrSchedulerLinear(initial_lr, end_lr, num_epochs)
-        if type == 'cosine_annealing':
-            return CustomLrSchedulerCosineAnnealing(initial_lr, num_epochs, end_lr)
-        if type == 'warmup_cosine_annealing':
-            return CustomWarmupCosineAnnealing(initial_lr, max_lr, warmup_len, num_epochs, end_lr)
-        else:
-            print('constant scheduler')
-            return CustomLrSchedulerLinear(initial_lr, initial_lr, num_epochs)
+
+def createschedulers(opt):
 
     critic_lr_scheduler = defineScheduler(opt.schedule_type_critic, opt.critic_lr_i, opt.critic_lr_e, opt.num_epochs, opt.critic_lr_m, opt.critic_len_w)
     actor_lr_scheduler = defineScheduler(opt.schedule_type_actor, opt.actor_lr_i, opt.actor_lr_e, opt.num_epochs, opt.actor_lr_m, opt.actor_len_w)
