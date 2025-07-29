@@ -32,7 +32,7 @@ def train_PPO(opt, envs, device, encoder, gamma, models_dict, action_dim, featur
 
     num_envs = opt.num_envs
     
-    agent = AC_Agent(feature_dim, action_dim, None, encoder).to(device)
+    agent = AC_Agent(feature_dim, action_dim, None, encoder, opt.normalize_features).to(device)
 
     optimizer = torch.optim.AdamW(agent.parameters(), lr = opt.lr)
 
@@ -96,8 +96,6 @@ def collect_rollouts(opt, envs, device, agent, len_rollouts, feature_dim, action
         is_next_observation_terminal_t = torch.zeros(num_envs, device= device)
 
         for step in range(len_rollouts):
-
-            count_num_steps_env += torch.ones_like(count_num_steps_env, dtype= torch.float32, device= device)
             
             batch_features[step] = features_t
             batch_is_episode_terminated[step] = is_next_observation_terminal_t
@@ -113,8 +111,12 @@ def collect_rollouts(opt, envs, device, agent, len_rollouts, feature_dim, action
 
             batch_values[step] = values_t
 
-
-            n_state, rewards, terminated, truncated, _ = envs.step(actions_t.cpu().numpy())
+              
+            for _ in range(opt.frame_skip):
+                count_num_steps_env += torch.ones_like(count_num_steps_env, dtype= torch.float32, device= device)
+                n_state, rewards, terminated, truncated, _ = envs.step(actions_t.cpu().numpy())
+                if terminated or truncated:
+                    break
 
             batch_rewards[step] = torch.as_tensor(rewards,dtype= torch.float32, device= device)
             

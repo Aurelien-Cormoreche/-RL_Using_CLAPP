@@ -45,7 +45,7 @@ def plot_matrix(file_features):
 def meusureIntensityAtPositions(file_features, file_model, model_name):
     features = torch.from_numpy(np.load(file_features)).to('mps')
     model = torch.load(file_model, weights_only= False, map_location=torch.device('mps'))[model_name]
-    weights = model['layer.weight'][1]
+    weights = model['layer.weight'][0]
     
     cos_sim = (features @ weights.T).cpu()
     
@@ -91,6 +91,11 @@ def meusureIntensityAtPositions(file_features, file_model, model_name):
     plt.grid(True)
     plt.show()
 
+def count_steps(frameskip_num, file):
+    data = load_file(file)
+    return np.sum(data)/frameskip_num
+
+
 
 if __name__ == '__main__':
 
@@ -118,12 +123,25 @@ if __name__ == '__main__':
         decayinglambda_decaying_lr_warmup= compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/df3d79b191724e0393e02b832144f922/metrics/length_episode', t)
         long_decaying_lamd_warmup = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/ce1f156b52274e43b088c162292f3965/metrics/length_episode', t)
         small_lambda =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/dd7eeaa3527c49a08108886edce08a90/metrics/length_episode', t)
-        '''
+        
         noentropy = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/e78e198e983f45a39c0c04a8ef03172a/metrics/length_episode', t)
         noentropy2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/ec5dfa9d76ca430a9c9c4b469c364a0f/metrics/length_episode', t)
         entropy = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/a31e31a9817940b78e273326e95966c0/metrics/length_episode', t)
         entropy2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/e53abdc9a3a44311a0ce5327532f0888/metrics/length_episode', t)
+       
+        baselinePPO = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/332671571023767635/295debefa8ca4e19866a0d75fc055ba2/metrics/run length', t)
+        '''
+        #longtrain = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/18d5c9c052354170864156ed7bb385fb/metrics/length_episode', t)
+        #longtrain2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/d889e0f834f04ed6973d6db00e43635a/metrics/length_episode', t)
+        
         #higherLr2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/ff2ff7a024c74020836a3313a51ede45/metrics/length_episode', t) 
+        
+        longtrainresnet = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/8ff78d03c85d410b839ef10817f9017c/metrics/length_episode', t)
+        longtrain3 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/38beab3edf5b476987506eeb90a0f260/metrics/length_episode', t)
+        longtrain4 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/f77a81c69a5b461c81b62532445bdfc0/metrics/length_episode', t)
+        longtrain5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/5ddd53ad80d745929b0c1c83a1bc67eb/metrics/length_episode', t)
+
+        
         #plt.plot(mv_avg_CLAPP)
         #plt.plot(mv_avg_Resnet)
         #plt.plot(mv_avg_a2c_fs)
@@ -138,16 +156,24 @@ if __name__ == '__main__':
         #plt.plot(small_lambda)
         #plt.plot(noentropy)
         #plt.plot(noentropy2)
-        plt.plot(entropy)
-        plt.plot(entropy2)
-        #plt.plot(higherLr2)
-       
+        #plt.plot(entropy)
+        #plt.plot(entropy2)
+       #plt.plot(baselinePPO)
+  
+        #plt.plot(longtrain)
+        #plt.plot(longtrain2)
+        plt.plot(longtrainresnet)
+        plt.plot(longtrain3)
+        plt.plot(longtrain4)
+        plt.plot(longtrain5)
         plt.show()
+
+    #print(count_steps(3,'/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/d889e0f834f04ed6973d6db00e43635a/metrics/length_episode'))
 
 
     '''
     #visualize_weights('trained_models/saved_from_run.pt', 'critic')
-    meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', '/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/saved_from_run.pt', 'actor')
+    meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', '/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/long_run_1.pt', 'critic')
 
 
     #plot_matrix('trained_models/encoded_features_CLAPP.npy')
