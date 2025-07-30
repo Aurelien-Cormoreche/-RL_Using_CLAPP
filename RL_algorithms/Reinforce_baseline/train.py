@@ -6,7 +6,7 @@ from utils.utils_torch import TorchDeque, CustomAdamEligibility
 
 def reinforce_baseline_collector(opt, envs, modules, variables, epoch):
     agent, icm, optimizer, schedulders = modules
-    feature_dim, action_dim, _ , _, _, _  = variables
+    feature_dim, action_dim, moving_avg, _ , _, _, _  = variables
 
     baseline_schedule = schedulders[2]
     
@@ -49,23 +49,23 @@ def reinforce_baseline_collector(opt, envs, modules, variables, epoch):
         
         if opt.render:
             envs.render()
-
-    advantage = total_reward - baseline_schedule.get_lr()
+    moving_avg = moving_avg.lerp(torch.tensor(total_reward, device= opt.device, dtype= torch.float32), torch.tensor(baseline_schedule.get_lr(), device= opt.device, dtype= torch.float32))
+    advantage = total_reward - moving_avg
     
     for scheduler in schedulders: scheduler.step_forward()
 
-    return feature_dim, action_dim, length_episode, total_reward, tot_loss_actor, tot_loss_critic, advantage 
+    return feature_dim, action_dim, moving_avg, length_episode, total_reward, tot_loss_actor, tot_loss_critic, advantage 
 
 
 def reinforce_baseline_updator(opt, modules, variables, collected):
-    feature_dim, action_dim, length_episode, total_reward, tot_loss_actor, tot_loss_critic, advantage = collected
+    feature_dim, action_dim, moving_avg, length_episode, total_reward, tot_loss_actor, tot_loss_critic, advantage = collected
     optimizer = modules[2]
     with torch.no_grad():
         optimizer.step(advantage, None)
-    return feature_dim, action_dim, length_episode, total_reward, tot_loss_actor, tot_loss_critic
+    return feature_dim, action_dim, moving_avg, length_episode, total_reward, tot_loss_actor, tot_loss_critic
 
 def reinforce_baseline_modules(opt, variables, encoder, models_dict, envs):
-    feature_dim, action_dim, _, _, _, _ = variables
+    feature_dim, action_dim, _, _, _, _, _ = variables
     agent = A_Agent(feature_dim, action_dim, None, encoder, opt.normalize_features).to(opt.device)
     actor_lr_scheduler = defineScheduler(opt.schedule_type_actor, opt.actor_lr_i, opt.actor_lr_e, opt.num_epochs, opt.actor_lr_m, opt.actor_len_w)
     theta_lam_scheduler =defineScheduler(opt.schedule_type_theta_lam, opt.t_delay_theta_i, opt.t_delay_theta_e, opt.num_epochs, opt.theta_l_m, opt.theta_l_len_w)
@@ -76,16 +76,17 @@ def reinforce_baseline_modules(opt, variables, encoder, models_dict, envs):
     return agent, None, optimizer, schedulers
 
 def reinforce_baseline_metrics(opt, epoch, variables):
-    _, _, length_episode, total_reward, _, _ = variables
+    _, _, moving_avg, length_episode, total_reward, _, _ = variables
     mlflow.log_metrics( 
                 {
                     'reward': total_reward,
-                    'length_episode': length_episode
+                    'length_episode': length_episode,
+                    'moving_avg' : moving_avg.item()
                 },
                 step= epoch
             )
 def reinforce_baseline_init(opt, feature_dim, action_dim, envs):
-    return  feature_dim, action_dim, 0, 0, 0, 0
+    return  feature_dim, action_dim, torch.zeros((1), device= opt.device), 0, 0, 0, 0
 
 def reinforce_baseline_log_params(opt):
     mlflow.log_params({

@@ -69,8 +69,8 @@ def parsing():
     parser.add_argument('--w_l_len_w', type=int, default=10, help='warmup length for critic eligibility trace delay')
 
     parser.add_argument('--schedule_type_baseline', default='linear', help='schedule type for the baseline if we run reinforce with artificial baseline')
-    parser.add_argument('--baseline_i', type=float, default=0, help='initial baseline ')
-    parser.add_argument('--baseline_e', type=float, default=0.9, help='end baseline')
+    parser.add_argument('--baseline_i', type=float, default=0.05, help='initial baseline ')
+    parser.add_argument('--baseline_e', type=float, default=0.05, help='end baseline')
 
     parser.add_argument('--entropy', action='store_true', help='add an entropy component to the loss')
     parser.add_argument('--schedule_type_entropy', default='constant', help='schedule type for the critic coefficient')

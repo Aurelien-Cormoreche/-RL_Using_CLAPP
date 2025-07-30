@@ -129,7 +129,7 @@ if __name__ == '__main__':
         entropy = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/a31e31a9817940b78e273326e95966c0/metrics/length_episode', t)
         entropy2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/e53abdc9a3a44311a0ce5327532f0888/metrics/length_episode', t)
        '''
-        #baselinePPO = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/332671571023767635/295debefa8ca4e19866a0d75fc055ba2/metrics/run length', t)
+        baselinePPO = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/332671571023767635/295debefa8ca4e19866a0d75fc055ba2/metrics/run length', t)
  
         #longtrain = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/18d5c9c052354170864156ed7bb385fb/metrics/length_episode', t)
         longtrain2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/d889e0f834f04ed6973d6db00e43635a/metrics/length_episode', t)
@@ -160,7 +160,7 @@ if __name__ == '__main__':
         #plt.plot(noentropy2)
         #plt.plot(entropy)
         #plt.plot(entropy2)
-        #plt.plot(baselinePPO)
+        plt.plot(baselinePPO)
   
         #plt.plot(longtrain)
         #plt.plot(longtrain2)
@@ -169,7 +169,7 @@ if __name__ == '__main__':
         #plt.plot(longtrain4)
         #plt.plot(longtrain5)
         plt.plot(train_baseline)
-        plt.plot(train_decay_real)
+        #plt.plot(train_decay_real)
         plt.show()
 
     #print(count_steps(3,'/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/d889e0f834f04ed6973d6db00e43635a/metrics/length_episode'))
