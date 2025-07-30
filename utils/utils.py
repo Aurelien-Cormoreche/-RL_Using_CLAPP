@@ -41,7 +41,7 @@ def parsing():
     parser.add_argument('--PCA', action='store_true', help= 'use PCA for ICM')
     parser.add_argument('--lr_scheduler', action= 'store_true', help= 'add a lr scheduler')
     parser.add_argument('--normalize_features', action= 'store_true', help='normalize the features from the encoder')
-    parser.add_argument('--target', default= True, type= bool, help='wether to use a target network')
+    parser.add_argument('--target', action='store_true', help='wether to use a target network')
     parser.add_argument('--tau', default= 0.05, type= float, help='by how much we update the taget network')
 
     parser.add_argument('--schedule_type_critic', default='linear', help='schedule type for the critic learning rate')
@@ -56,9 +56,9 @@ def parsing():
     parser.add_argument('--actor_lr_m', type=float, default=1e-4, help='max actor learning rate (for warmup jobs)')
     parser.add_argument('--actor_len_w', type=int, default=100, help='warmup length for the actor learning rate scheduler')
 
-    parser.add_argument('--schedule_type_theta_lam', default='cosine_annealing', help='schedule type for the actor eligibility trace delay')
+    parser.add_argument('--schedule_type_theta_lam', default='linear', help='schedule type for the actor eligibility trace delay')
     parser.add_argument('--t_delay_theta_i', type=float, default=0.9, help='initial delay for actor in case of eligibility trace')
-    parser.add_argument('--t_delay_theta_e', type=float, default=0.75, help='end delay for actor in case of eligibility trace')
+    parser.add_argument('--t_delay_theta_e', type=float, default=0.9, help='end delay for actor in case of eligibility trace')
     parser.add_argument('--theta_l_m', type=float, default=0.9, help='max actor eligibility trace delay (for warmup jobs)')
     parser.add_argument('--theta_l_len_w', type=int, default=10, help='warmup length for actor eligibility trace delay')
 
@@ -69,8 +69,8 @@ def parsing():
     parser.add_argument('--w_l_len_w', type=int, default=10, help='warmup length for critic eligibility trace delay')
 
     parser.add_argument('--schedule_type_baseline', default='linear', help='schedule type for the baseline if we run reinforce with artificial baseline')
-    parser.add_argument('--baseline_i', type=float, default=0.05, help='initial baseline ')
-    parser.add_argument('--baseline_e', type=float, default=0.05, help='end baseline')
+    parser.add_argument('--baseline_i', type=float, default=0.00005, help='initial baseline ')
+    parser.add_argument('--baseline_e', type=float, default=0.00005, help='end baseline')
 
     parser.add_argument('--entropy', action='store_true', help='add an entropy component to the loss')
     parser.add_argument('--schedule_type_entropy', default='constant', help='schedule type for the critic coefficient')

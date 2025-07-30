@@ -10,6 +10,8 @@ class ActorModel(nn.Module):
 
         self.layer = Linear(num_features, num_actions)
         self.softmax = Softmax(dim= -1)
+        for p in self.parameters():
+            nn.init.zeros_(p)
         
     def forward(self, x, temp = None):
         if temp : 
@@ -28,7 +30,8 @@ class CriticModel(nn.Module):
         super().__init__(*args, **kwargs)
 
         self.layer = Linear(num_features, 1)
-        
+        for p in self.parameters():
+            nn.init.zeros_(p)
     
         if activation == 'ReLu':
             self.activation = ReLU()

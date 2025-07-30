@@ -24,6 +24,7 @@ def train(opt, envs, model_path, device, models_dict):
             feature_dim = 15 * 1024
     elif opt.encoder == 'resnet':    
         encoder = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+        encoder.fc = torch.nn.Identity()
         assert not opt.greyscale
         feature_dim = 1000
     else:
