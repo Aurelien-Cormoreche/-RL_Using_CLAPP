@@ -168,3 +168,20 @@ def createPCA(args, filename, env, encoder, n_components):
     return pca
     
 
+def select_device(args):
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        torch.cuda.manual_seed(args.seed)
+
+    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        device = torch.device("mps")
+        torch.mps.manual_seed(args.seed)
+
+    else:
+        device = torch.device("cpu")
+        print('cpu device no seed set')
+    args.device = device
+    return device

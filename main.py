@@ -4,7 +4,7 @@ import os
 from RL_algorithms.PPO.train import train_PPO
 from RL_algorithms.trainer import Trainer
 from utils.load_standalone_model import load_model
-from utils.utils import save_models, create_ml_flow_experiment, parsing, create_envs, launch_experiment, createPCA
+from utils.utils import save_models, create_ml_flow_experiment, parsing, create_envs, launch_experiment, createPCA, select_device
 
 import torch
 import torch.nn.functional as F
@@ -26,7 +26,8 @@ def train(opt, envs, model_path, device, models_dict):
         encoder = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
         encoder.fc = torch.nn.Identity()
         assert not opt.greyscale
-        feature_dim = 1000
+        feature_dim = 2048
+
     else:
         print('no available encoder matched the argument')
         return
@@ -49,22 +50,8 @@ def train(opt, envs, model_path, device, models_dict):
 
 def main(args):
 
-    torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
-    
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        torch.cuda.manual_seed(args.seed)
-
-    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-        device = torch.device("mps")
-        torch.mps.manual_seed(args.seed)
-
-    else:
-        device = torch.device("cpu")
-        print('cpu device no seed set')
-    args.device = device
-
+   
+    device = select_device(args)
 
     model_path = os.path.abspath('trained_models')
 
