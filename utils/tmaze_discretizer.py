@@ -293,7 +293,7 @@ if __name__ == '__main__':
     )
     
     envs =gym.make("MyTMaze", render_mode='human')
-  
+    
    
 
     

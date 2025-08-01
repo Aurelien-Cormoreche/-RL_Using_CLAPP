@@ -62,3 +62,5 @@ RUN chown -R ${LDAP_USERNAME}:${LDAP_GROUPNAME} /home/${LDAP_USERNAME}
 # Set the working directory in your user's home
 WORKDIR /home/${LDAP_USERNAME}
 USER ${LDAP_USERNAME}
+
+ENV PYGLET_HEADLESS=True

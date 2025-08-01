@@ -6,7 +6,7 @@ from .models import ActorModel, CriticModel
 
 class AC_Agent(nn.Module):
 
-    def __init__(self,num_features, num_action, activation, encoder,normalize_features = False, *args, **kwargs):
+    def __init__(self,num_features, num_action, activation, encoder,normalize_features = False, have_critic = True, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
         self.normalize_features = normalize_features
@@ -14,8 +14,8 @@ class AC_Agent(nn.Module):
         self.encoder = encoder
 
         self.actor = ActorModel(num_features, num_action)
-     
-        self.critic = CriticModel(num_features, activation)
+        if have_critic:
+            self.critic = CriticModel(num_features, activation)
 
         if self.normalize_features:
             self.normalization = nn.LayerNorm(normalized_shape= num_features)
@@ -60,8 +60,11 @@ class AC_Agent(nn.Module):
 
 
     
+class A_Agent(AC_Agent):
+    def __init__(self, num_features, num_action, activation, encoder, normalize_features=False, *args, **kwargs):
+        super().__init__(num_features, num_action, activation, encoder, normalize_features, False, *args, **kwargs)
 
-    
+
     
     
     

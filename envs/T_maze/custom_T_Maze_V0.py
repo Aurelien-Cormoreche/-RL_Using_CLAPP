@@ -2,7 +2,7 @@ import math
 import argparse
 import numpy as np
 import pyglet
-pyglet.options['headless'] = True
+#pyglet.options['headless'] = True
 import miniworld
 from miniworld.miniworld import MiniWorldEnv
 from miniworld.entity import Box, ImageFrame, MeshEnt, Key
@@ -55,8 +55,6 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
 
         room1 = self.add_rect_room(min_x=-0.22, max_x=8, min_z=-1.37, max_z=1.37, wall_tex="picket_fence",)
         room2 = self.add_rect_room(min_x=8, max_x=10.74, min_z= min_z_room2, max_z= max_z_room2, wall_tex="picket_fence")
-
-        
 
         self.connect_rooms(room_a= room1, room_b= room2, min_z= -1.37, max_z= 1.37)
 
@@ -127,7 +125,8 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
 
     def step(self, action):
         obs, reward, termination, truncation, info = super().step(action)
-
+        
+        '''
         if self.near(self.box):
             reward += self._reward()
             termination = True
@@ -141,7 +140,9 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
         info["goal_pos"] = self.box.pos
         info['agent_pos'] = (self.agent.pos - [5.26,0  ,0 ])/[10.96,13.7 ,1]
         info['agent_dir'] = (self.agent.dir % (math.pi * 2))/(math.pi * 2)
+        '''
         return obs, reward, termination, truncation, info
+
     
 
 
@@ -170,6 +171,7 @@ def main():
     print(f"Miniworld v{miniworld_version}, Env: {args.env_name}")
 
     manual_control = ManualControl(env, args.no_time_limit, args.domain_rand)
+
     manual_control.run()
 
 

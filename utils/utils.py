@@ -25,11 +25,11 @@ def parsing():
     parser.add_argument('--algorithm',default= 'actor_critic', help= 'type of RL algorithm to use')
     parser.add_argument('--encoder', default= "CLAPP", help="decide which encoder to use")
     parser.add_argument('--keep_patches', action= 'store_true', help= 'keep the patches for the encoder')
-    parser.add_argument('--seed', default= 0, type= int, help= 'manual seed for training')
+    parser.add_argument('--seed', default= 1, type= int, help= 'manual seed for training')
     parser.add_argument('--checkpoint_interval', default= 1000, type= int, help= 'interval at which to save the model weights')
 
     #hyperparameters for the training
-    parser.add_argument('--num_epochs', default= 8000, type= int, help= 'number of epochs for the training')
+    parser.add_argument('--num_epochs', default= 80000, type= int, help= 'number of epochs for the training')
     parser.add_argument('--gamma', default= 0.995, help= 'gamma for training in the environment')    
     parser.add_argument('--nb_stacked_frames', default= 1, type= int, help= 'number of stacked frames given as input')
     parser.add_argument('--frame_skip', default= 1, type= int, help= 'number of frames to skip')
@@ -41,6 +41,8 @@ def parsing():
     parser.add_argument('--PCA', action='store_true', help= 'use PCA for ICM')
     parser.add_argument('--lr_scheduler', action= 'store_true', help= 'add a lr scheduler')
     parser.add_argument('--normalize_features', action= 'store_true', help='normalize the features from the encoder')
+    parser.add_argument('--target', action='store_true', help='wether to use a target network')
+    parser.add_argument('--tau', default= 0.05, type= float, help='by how much we update the taget network')
 
     parser.add_argument('--schedule_type_critic', default='linear', help='schedule type for the critic learning rate')
     parser.add_argument('--critic_lr_i', type=float, default=1e-4, help='initial learning rate for the critic')
@@ -49,33 +51,45 @@ def parsing():
     parser.add_argument('--critic_len_w', type=int, default=10, help='warmup length for the critic learning rate scheduler')
 
     parser.add_argument('--schedule_type_actor', default='linear', help='schedule type for the actor learning rate')
-    parser.add_argument('--actor_lr_i', type=float, default=8e-5, help='initial learning rate for the actor')
-    parser.add_argument('--actor_lr_e', type=float, default=8e-5, help='end learning rate for the actor')
-    parser.add_argument('--actor_lr_m', type=float, default=8e-5, help='max actor learning rate (for warmup jobs)')
-    parser.add_argument('--actor_len_w', type=int, default=10, help='warmup length for the actor learning rate scheduler')
+    parser.add_argument('--actor_lr_i', type=float, default=9e-5, help='initial learning rate for the actor')
+    parser.add_argument('--actor_lr_e', type=float, default=9e-5, help='end learning rate for the actor')
+    parser.add_argument('--actor_lr_m', type=float, default=1e-4, help='max actor learning rate (for warmup jobs)')
+    parser.add_argument('--actor_len_w', type=int, default=100, help='warmup length for the actor learning rate scheduler')
 
-    parser.add_argument('--schedule_type_theta_lam', default='cosine_annealing', help='schedule type for the actor eligibility trace delay')
-    parser.add_argument('--t_delay_theta_i', type=float, default=0.95, help='initial delay for actor in case of eligibility trace')
-    parser.add_argument('--t_delay_theta_e', type=float, default=0.75, help='end delay for actor in case of eligibility trace')
+    parser.add_argument('--schedule_type_theta_lam', default='linear', help='schedule type for the actor eligibility trace delay')
+    parser.add_argument('--t_delay_theta_i', type=float, default=0.9, help='initial delay for actor in case of eligibility trace')
+    parser.add_argument('--t_delay_theta_e', type=float, default=0.9, help='end delay for actor in case of eligibility trace')
     parser.add_argument('--theta_l_m', type=float, default=0.9, help='max actor eligibility trace delay (for warmup jobs)')
     parser.add_argument('--theta_l_len_w', type=int, default=10, help='warmup length for actor eligibility trace delay')
 
-    parser.add_argument('--schedule_type_w_lam', default='cosine_annealing', help='schedule type for the critic eligibility trace delay')
-    parser.add_argument('--t_delay_w_i', type=float, default=0.95, help='initial delay for critic in case of eligibility trace')
-    parser.add_argument('--t_delay_w_e', type=float, default=0.75, help='end delay for critic in case of eligibility trace')
+    parser.add_argument('--schedule_type_w_lam', default='linear', help='schedule type for the critic eligibility trace delay')
+    parser.add_argument('--t_delay_w_i', type=float, default=0.9, help='initial delay for critic in case of eligibility trace')
+    parser.add_argument('--t_delay_w_e', type=float, default=0.9, help='end delay for critic in case of eligibility trace')
     parser.add_argument('--w_l_m', type=float, default=0.9, help='max critic eligibility trace delay (for warmup jobs)')
     parser.add_argument('--w_l_len_w', type=int, default=10, help='warmup length for critic eligibility trace delay')
 
+    parser.add_argument('--schedule_type_baseline', default='linear', help='schedule type for the baseline if we run reinforce with artificial baseline')
+    parser.add_argument('--baseline_i', type=float, default=0.00005, help='initial baseline ')
+    parser.add_argument('--baseline_e', type=float, default=0.00005, help='end baseline')
+
+    parser.add_argument('--entropy', action='store_true', help='add an entropy component to the loss')
+    parser.add_argument('--schedule_type_entropy', default='constant', help='schedule type for the critic coefficient')
+    parser.add_argument('--coeff_entropy_i', type=float, default=0.0005, help='initial coefficient of the critic in the PPO loss')
+    parser.add_argument('--coeff_entropy_e', type=float, default=0.005, help='end coefficient of the critic in the PPO loss')
+    parser.add_argument('--coeff_entropy_m', type=float, default=0.005, help='max coefficient of the critic (for warmup schedule)')
+    parser.add_argument('--coeff_entropy_len_w', type=int, default=2000, help='warmup length for the critic coefficient schedule')
+
+
     parser.add_argument('--len_rollout', default= 1024, type= int, help= 'length of the continuous rollout')
     parser.add_argument('--num_updates', default= 8, type= int, help= 'number of steps for the optimizer')
-    parser.add_argument('--minibatch_size', default= 256, help= 'define minibatch size for offline learning')
-    parser.add_argument('--lr', default= 5e-5, help='Lr in case we need only one learning rate for our algorithm')
-    parser.add_argument('--lambda_gae', default= 0.97, help='Lamda used when calculating the GAE')
+    parser.add_argument('--minibatch_size', default= 256, type= int,help= 'define minibatch size for offline learning')
+    parser.add_argument('--lr', default= 5e-5, type= float, help='Lr in case we need only one learning rate for our algorithm')
+    parser.add_argument('--lambda_gae', default= 0.97, type= float, help='Lamda used when calculating the GAE')
     parser.add_argument('--not_normalize_advantages', action= 'store_false', help= 'normalize the advantages of each minibatch')
-    parser.add_argument('--critic_eps', default= 0.25, help= 'the epsilon for clipping the critic updates' )
-    parser.add_argument('--actor_eps', default= 0.25, help= 'the epsilon for clipping the actor updates' )
-    parser.add_argument('--coeff_critic', default= 0.5, help= 'coefficient of the critic in the PPO general loss' )
-    parser.add_argument('--coeff_entropy', default= 0.0005, help= 'coefficient of the entropy in the PPO general loss' )
+    parser.add_argument('--critic_eps', default= 0.25, type= float,help= 'the epsilon for clipping the critic updates' )
+    parser.add_argument('--actor_eps', default= 0.25, type= float, help= 'the epsilon for clipping the actor updates' )
+    parser.add_argument('--coeff_critic', default= 0.5, type= float, help= 'coefficient of the critic in the PPO general loss' )
+    parser.add_argument('--coeff_entropy', default= 0.0005, type= float, help= 'coefficient of the entropy in the PPO general loss' )
     parser.add_argument('--grad_clipping', action= 'store_true', help= 'do we need to clip the gradients' )
 
     #MlFlow parameters
@@ -144,13 +158,35 @@ def collect_and_store_features(args, filename, encoder, env):
     return features
 
 
-def createPCA(args, filename, env, encoder, n_components):
+def createPCA(args, filename, env, encoder, n_components, n_elements = -1) :
     if os.path.exists(filename):
-        features = np.load(filename)
+        if filename.endswith('pt'):
+            features = torch.load(filename, map_location= 'cpu')
+            features = features.numpy()
+        else: 
+            features = np.load(filename)
     else:
         features = collect_and_store_features(args, filename, encoder, env)
+    features = features[:n_elements, :]
     pca = PCA(n_components= n_components)
     pca.fit(features)
     return pca
     
 
+def select_device(args):
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        torch.cuda.manual_seed(args.seed)
+
+    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        device = torch.device("mps")
+        torch.mps.manual_seed(args.seed)
+
+    else:
+        device = torch.device("cpu")
+        print('cpu device no seed set')
+    args.device = device
+    return device

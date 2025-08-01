@@ -13,9 +13,10 @@ def load_file(filepath):
     data = np.loadtxt(filepath)
     return data[:, 1]
 
-def compute_moving_average(filepath,window_size):
+def compute_moving_average(filepath,window_size, remove_outliers = False, outliers_level = 600):
     data = load_file(filepath)
-
+    if remove_outliers:
+        data = data[data <= outliers_level]
     return np.convolve(data, np.ones(window_size)/window_size, mode= 'valid')
 
 def visualize_weights(filepath, model_name):
@@ -26,7 +27,7 @@ def visualize_weights(filepath, model_name):
    
     plt.show()
 def plot_matrix(file_features):
-    features = torch.from_numpy(np.load(file_features)).to('mps') * 100
+    features = torch.from_numpy(np.load(file_features)).to('mps') 
 
     ln1 = torch.nn.LayerNorm((features.shape[1]), elementwise_affine= False).to('mps')
     transformedfeatures = ln1(features)
@@ -43,8 +44,8 @@ def plot_matrix(file_features):
 
 def meusureIntensityAtPositions(file_features, file_model, model_name):
     features = torch.from_numpy(np.load(file_features)).to('mps')
-    model = torch.load(file_model, weights_only= False)[model_name]
-    weights = model['layer.weight']
+    model = torch.load(file_model, weights_only= False, map_location=torch.device('mps'))[model_name]
+    weights = model['layer.weight'][0]
     
     cos_sim = (features @ weights.T).cpu()
     
@@ -73,7 +74,7 @@ def meusureIntensityAtPositions(file_features, file_model, model_name):
             color = cmap((val - vmin) / (vmax - vmin))  # Normalize for colormap
 
             # Draw arrow
-            ax.arrow(x, y, 0.2 * dx, 0.2 * dy, head_width=0.05, color=color)
+            ax.arrow(x, -y, 0.2 * dx, 0.2 * dy, head_width=0.05, color=color)
 
     # Set plot limits and aspect
     ax.set_aspect('equal')
@@ -90,51 +91,52 @@ def meusureIntensityAtPositions(file_features, file_model, model_name):
     plt.grid(True)
     plt.show()
 
+def count_steps(frameskip_num, file):
+    data = load_file(file)
+    return np.sum(data)/frameskip_num
+
+
 
 if __name__ == '__main__':
- 
-    tab = [1,10,20,50,100,300,500]
+
+    tab = [1,100,300,500]
     for t in tab:
-        
+        '''
         mv_avg_CLAPP = compute_moving_average('mlruns/244787145723528822/e677b4afb3e349e48481f15f21970daf/metrics/run length', t)
         mv_avg_Resnet = compute_moving_average('mlruns/873129205249233078/08d90e56b9d84e019e5ccee9e9ecc254/metrics/run length',t)
-        #mv_avg_a2c =  compute_moving_average('mlruns/244787145723528822/ef58ac2d07e343989ec5dcf2cde369d2/metrics/length_episode',t)
-        mv_avg_a2c_fs =  3 * compute_moving_average('mlruns/244787145723528822/fc50ad63a7a542158ae5073c793bc890/metrics/length_episode',t)
-        mv_avg_a2c_fs_mf =  compute_moving_average('mlruns/244787145723528822/4c01db63f6804de39fd9106b7812184a/metrics/length_episode',t)
-        mv_avg_a2c_fs_mf_2 =  compute_moving_average('mlruns/244787145723528822/2cd2bba123b046c693459074b4050ca2/metrics/length_episode',t)
-        mv_avg_a2c_fs2 =  compute_moving_average('mlruns/244787145723528822/e03457730fcf4c7b976ecffcf0845b8d/metrics/length_episode',t)
-        imc = compute_moving_average('mlruns/244787145723528822/62f7233037ed48ad909933993444f90d/metrics/length_episode',t)
-        new = compute_moving_average('mlruns/244787145723528822/880dc02e877740e080bb84e2874bf976/metrics/length_episode',t)
-        higherLr = compute_moving_average('mlruns/244787145723528822/1bf43f94dba04524b3451f7fb072f61f/metrics/length_episode',t)
-        normalized_good_1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/742250363624833332/6c08ec70df4b4a6dbe81a35db822efe5/metrics/length_episode', t)
-        normalized_good_2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/742250363624833332/d79efb31f4654bdf89f3348791e1d5f4/metrics/length_episode', t)
-        normalized_good_3 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/742250363624833332/a4ba2d0dfa4c4164b73773a4bd9422f3/metrics/length_episode', t)
+        baselinePPO = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/332671571023767635/295debefa8ca4e19866a0d75fc055ba2/metrics/run length', t)
+ 
+        #longtrain = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/18d5c9c052354170864156ed7bb385fb/metrics/length_episode', t)
+        longtrain2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/d889e0f834f04ed6973d6db00e43635a/metrics/length_episode', t)
 
-        mean_normalized_good = np.array([normalized_good_1,normalized_good_2,normalized_good_3]).mean(axis= 0)
+        longtrainresnet = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/8ff78d03c85d410b839ef10817f9017c/metrics/length_episode', t)
+        longtrain3 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/38beab3edf5b476987506eeb90a0f260/metrics/length_episode', t)
+        longtrain4 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/f77a81c69a5b461c81b62532445bdfc0/metrics/length_episode', t)
+        longtrain5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/5ddd53ad80d745929b0c1c83a1bc67eb/metrics/length_episode', t)
 
-        highlambda = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/a82399406d664aeb96cee572193d36eb/metrics/length_episode', t)
-        decayinglambda = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/38b439f35bc4486fb4888ea07df8ef56/metrics/length_episode', t)
+        train_baseline = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/5605406ba03648778118105a0b800018/metrics/length_episode', t)
+        train_decay_real = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/4aec231385604a358640ffbb85b34876/metrics/length_episode', t)
+        '''
+        baseline_2  = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/2276c172edcc448b92c12ecaec4973e4/metrics/length_episode', t)
+        baseline_resnet  = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/81476deac679452a9791f811067fda11/metrics/length_episode', t)
+        baseline_clapp_color = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/614ea0284ea14131b1e8b93400846bd5/metrics/length_episode', t)
 
-        plt.plot(mv_avg_CLAPP)
-        #plt.plot(mv_avg_Resnet)
-        #plt.plot(mv_avg_a2c_fs)
-       
-        #plt.plot(mv_avg_a2c_fs_mf)
-        #plt.plot(mv_avg_a2c_fs_mf_2)
-        #plt.plot(mean_normalized_good)
-        #plt.plot(mean_normalized_good)
-        plt.plot(highlambda)
-        plt.plot(decayinglambda)
-       
-       
+        ini_target = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/631652bc4453465db86e3476449484d1/metrics/length_episode', t)
+        ini_no_target = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/c64f82c8acdb4bd8b758891bb190328d/metrics/length_episode', t)
+
+        #plt.plot(baseline_2)
+        plt.plot(baseline_resnet)
+        plt.plot(ini_target)
+        plt.plot(ini_no_target)
         plt.show()
 
+    #print(count_steps(3,'/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/d889e0f834f04ed6973d6db00e43635a/metrics/length_episode'))
 
-    '''
+ 
     #visualize_weights('trained_models/saved_from_run.pt', 'critic')
-    meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', 'trained_models/EL_trace_8000_runs.pt', 'critic')
+    #meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', '/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/long_run_1.pt', 'critic')
 
 
-    plot_matrix('trained_models/encoded_features_CLAPP.npy')
+    #plot_matrix('trained_models/encoded_features_CLAPP.npy')
 
-    '''
+ 
