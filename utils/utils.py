@@ -158,11 +158,16 @@ def collect_and_store_features(args, filename, encoder, env):
     return features
 
 
-def createPCA(args, filename, env, encoder, n_components):
+def createPCA(args, filename, env, encoder, n_components, n_elements = -1) :
     if os.path.exists(filename):
-        features = np.load(filename)
+        if filename.endswith('pt'):
+            features = torch.load(filename, map_location= 'cpu')
+            features = features.numpy()
+        else: 
+            features = np.load(filename)
     else:
         features = collect_and_store_features(args, filename, encoder, env)
+    features = features[:n_elements, :]
     pca = PCA(n_components= n_components)
     pca.fit(features)
     return pca

@@ -31,7 +31,7 @@ class ICM(nn.Module):
         return phi_hat_t1, phi_s_t1
 
 
-        
+
 
 def update_ICM_predictor(predicted, real, icm_optimizer, encoder, device):
     real = torch.tensor(encoder.transform(real.to('cpu').numpy().reshape(1, -1)), device= device)

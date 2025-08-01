@@ -9,3 +9,5 @@ trained_models
 mlruns
 */__pycache__/
 Miniworld
+features_64000.pt
+labels64000.pt

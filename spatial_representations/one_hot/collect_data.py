@@ -9,12 +9,12 @@ import os
 class Specifications():
     def __init__(self):
         self.num_envs = 8
-        self.num_turns = 8
+        self.num_turns = 4
 
         self.width = 2.74
         self.height = 2.74
         self.step = 2
-        self.num_points = 100
+        self.num_points = 1000
         self.size_features = 1024
         self.size_labels = 1
 
@@ -51,11 +51,11 @@ if __name__ == '__main__':
     
         for j in range(specs.num_turns):
             obs = envs.step(np.zeros((specs.num_envs)))[0]
-            val[:, -1] +=  math.pi * 2/ 8
+            val[:, -1] +=  math.pi * 2/ 4
             pos = i * specs.num_envs * specs.num_turns + j * specs.num_turns
             features = encoder(torch.tensor(np.expand_dims(obs, axis = 1), dtype= torch.float32, device= device))
-            features_dataset[pos: pos + specs.num_turns] = features
-            labels_dataset[pos: pos + specs.num_turns] = idx.unsqueeze(dim= -1)
+            features_dataset[pos: pos + specs.num_envs] = features
+            labels_dataset[pos: pos + specs.num_envs] = idx.unsqueeze(dim= -1)
             idx += 1
 
     features_dataset = features_dataset.cpu()

@@ -33,7 +33,7 @@ class TorchDeque:
 
 class CosineAnnealingWarmupLr(SequentialLR):
 
-    def __init__(self, optimizer, warmup_steps, total_steps, start_factor=1e-3, last_epoch=-1, eta_min = 1e-5):
+    def __init__(self, optimizer, warmup_steps, total_steps, start_factor=1e-3, last_epoch=-1, eta_min = 1e-6):
         self.warmup = LinearLR(optimizer, start_factor, 1, warmup_steps)
         self.cosineAnnealing = CosineAnnealingLR(optimizer, T_max= total_steps - warmup_steps, eta_min = eta_min)
         super().__init__(optimizer, [self.warmup, self.cosineAnnealing], [warmup_steps], last_epoch)
