@@ -14,7 +14,7 @@ class Specifications():
         self.width = 2.74
         self.height = 2.74
         self.step = 2
-        self.num_points = 1000
+        self.num_points = 2048
         self.size_features = 1024
         self.size_labels = 1
 

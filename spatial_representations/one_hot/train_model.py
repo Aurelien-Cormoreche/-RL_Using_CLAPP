@@ -17,12 +17,13 @@ def train_offline(device):
     batch_size_training = 32
     batch_size_validation = 64
     num_epochs = 800
-    input_dim = 512
+    input_dim = 1024
     hidden_dim = 512
     output_dim = 32
     lr = 8e-5
     warmup_steps = 30
     n_elements = 4096
+    checkpoint_model = 250
     
     create_ml_flow_experiment('one_hot_training_supervised')
     mlflow.start_run()
@@ -37,9 +38,9 @@ def train_offline(device):
             'num_epochs' : num_epochs
             }
     )
-    pca =createPCA(None, f'dataset/T_maze_CLAPP_one_hot/features.pt', None, None, input_dim, n_elements )
-    t = lambda x : torch.tensor(pca.transform(x.to('cpu').numpy().reshape(1, -1)), device= device)
-    dataset = Dataset_One_Hot('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',device= device, transforms= t)
+    #pca =createPCA(None, f'dataset/T_maze_CLAPP_one_hot/features.pt', None, None, input_dim, n_elements )
+    #t = lambda x : torch.tensor(pca.transform(x.to('cpu').numpy().reshape(1, -1)), device= device)
+    dataset = Dataset_One_Hot('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',device= device, transforms= None)
     train_dataset, validation_dataset = random_split(dataset,[1-validation_share, validation_share])
     train_loader = DataLoader(train_dataset, batch_size_training, shuffle= True, pin_memory= True)
     validation_loader = DataLoader(validation_dataset, batch_size_validation, shuffle= False, pin_memory= True)
@@ -54,6 +55,8 @@ def train_offline(device):
         train_loss, train_accuracy = train_one_epoch(train_loader, optimzer, model, loss_fn)
         validation_loss, validation_accuracy = compute_validation_metrics(validation_loader, model, loss_fn)
         log_metrics(train_loss, train_accuracy, validation_loss, validation_accuracy, epoch)
+        if epoch % checkpoint_model == 0:
+            torch.save(model.state_dict(), 'spatial_representations/one_hot/model.pt')
         #schedulder.step()
 
     
