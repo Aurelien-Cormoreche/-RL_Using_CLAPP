@@ -20,7 +20,7 @@ def train_offline(device):
     input_dim = 1024
     hidden_dim = 512
     output_dim = 32
-    lr = 8e-5
+    lr = 5e-5
     warmup_steps = 30
     n_elements = 4096
     checkpoint_model = 250
@@ -51,6 +51,8 @@ def train_offline(device):
 
     loss_fn = CrossEntropyLoss(reduction= 'sum')
     
+    torch.save(validation_dataset, 'spatial_representations/one_hot/validation.pt')
+
     for epoch in tqdm.tqdm(range(num_epochs)):
         train_loss, train_accuracy = train_one_epoch(train_loader, optimzer, model, loss_fn)
         validation_loss, validation_accuracy = compute_validation_metrics(validation_loader, model, loss_fn)
