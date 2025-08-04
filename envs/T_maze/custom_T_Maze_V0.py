@@ -15,9 +15,9 @@ import gymnasium as gym
 
 class MyTmaze(MiniWorldEnv, utils.EzPickle):
     
-    def __init__(self, visible_reward = True, add_obstacles = False, add_visual_cue_object = False, intermediate_rewards = False,reward_left = True,
+    def __init__(self, reward, visible_reward = True, add_obstacles = False, add_visual_cue_object = False, intermediate_rewards = False,reward_left = True,
                  probability_of_left = 0.5,latent_learning = False, add_visual_cue_image = False, left_arm = True, right_arm = True, **kwargs):
-    
+        self.reward = reward
         self.visible_reward = visible_reward    
         self.latent_learning = latent_learning
         self.intermediate_rewards = intermediate_rewards
@@ -125,22 +125,21 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
 
     def step(self, action):
         obs, reward, termination, truncation, info = super().step(action)
-        
-        '''
-        if self.near(self.box):
-            reward += self._reward()
-            termination = True
+        if self.reward:
+            if self.near(self.box):
+                reward += self._reward()
+                termination = True
 
-        if self.add_visual_cue_object and self.found_key == False and self.near(self.key):
-           self.found_key = True 
-           if self.intermediate_rewards:
-               reward += self._reward()
-           self.entities.remove(self.key)
+            if self.add_visual_cue_object and self.found_key == False and self.near(self.key):
+                self.found_key = True 
+                if self.intermediate_rewards:
+                    reward += self._reward()
+                self.entities.remove(self.key)
 
-        info["goal_pos"] = self.box.pos
-        info['agent_pos'] = (self.agent.pos - [5.26,0  ,0 ])/[10.96,13.7 ,1]
-        info['agent_dir'] = (self.agent.dir % (math.pi * 2))/(math.pi * 2)
-        '''
+            info["goal_pos"] = self.box.pos
+            info['agent_pos'] = (self.agent.pos - [5.26,0  ,0 ])/[10.96,13.7 ,1]
+            info['agent_dir'] = (self.agent.dir % (math.pi * 2))/(math.pi * 2)
+
         return obs, reward, termination, truncation, info
 
     

@@ -18,6 +18,5 @@ class Spatial_Model(nn.Module):
         print(self.layers)
         self.layers = nn.Sequential(*self.layers)
 
-
     def forward(self, x):
         return self.layers(x)

@@ -20,8 +20,8 @@ def value_for_misclassified(validation_DataLoader, model):
             wrongs = (predicted != labels.squeeze())
             probawrongs = proba_labels[wrongs]
             proba_preds = proba_predicted[wrongs]
-            res1 = torch.cat((res1, probawrongs.squeeze()))
-            res2 = torch.cat((res2, proba_preds.squeeze()))
+            res1 = torch.cat((res1, probawrongs.squeeze(dim= -1)))
+            res2 = torch.cat((res2, proba_preds.squeeze(dim= -1)))
             
         return res1, res2
 
@@ -80,6 +80,7 @@ if __name__ == '__main__':
         plt.show()
 
     plot_wrongly_classified()
+
 
 
 

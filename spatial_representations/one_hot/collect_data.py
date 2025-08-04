@@ -29,7 +29,7 @@ if __name__ == '__main__':
     device = select_device(args)
     specs = Specifications()
     assert args.greyscale
-    envs = create_envs(args, specs.num_envs)
+    envs = create_envs(args, specs.num_envs, reward= False)
     encoder = load_model(os.path.abspath('trained_models')).to(device).eval().requires_grad_(False)
 
     deviations = torch.tensor(

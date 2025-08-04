@@ -3,9 +3,10 @@ import os
 #from RL_algorithms.actor_critic.train import train_actor_critic
 from RL_algorithms.PPO.train import train_PPO
 from RL_algorithms.trainer import Trainer
+from RL_algorithms.models import Encoder_Model
 from utils.load_standalone_model import load_model
 from utils.utils import save_models, create_ml_flow_experiment, parsing, create_envs, launch_experiment, createPCA, select_device
-
+from spatial_representations.models import Spatial_Model
 import torch
 import torch.nn.functional as F
 from torchvision.models import resnet50, ResNet50_Weights
@@ -17,27 +18,31 @@ def train(opt, envs, model_path, device, models_dict):
     
     gamma = opt.gamma
 
-    if opt.encoder == 'CLAPP':
-        encoder = load_model(model_path= model_path).eval()
+    encoder_models = []
+    
+    if opt.encoder.startswith('CLAPP'):
+        encoder_models.append(load_model(model_path= model_path).eval())
         feature_dim = 1024
         if opt.keep_patches:
             feature_dim = 15 * 1024
-    elif opt.encoder == 'resnet':    
-        encoder = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
-        encoder.fc = torch.nn.Identity()
+    elif opt.encoder.startswith('resnet'):
+        model_res = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+        model_res.fc = torch.nn.Identity()
         assert not opt.greyscale
         feature_dim = 2048
-
-    else:
-        print('no available encoder matched the argument')
-        return
-
-    encoder = encoder.to(device)
+        encoder_models.append(model_res)
+    
+    if opt.encoder.endswith('one_hot'):
+        one_hot_model = Spatial_Model(feature_dim, [32])
+        one_hot_model.load_state_dict(torch.load('spatial_representations/one_hot/model.pt'))
+        feature_dim = 32
+        encoder_models.append(one_hot_model)
+        print('using one hot')
+    
+    encoder = Encoder_Model(encoder_models)
+    encoder = encoder.to(device).requires_grad_(False)
     encoder.compile(backend="aot_eager")
 
-    for param in encoder.parameters():
-        param.requires_grad = False
-    
     action_dim = envs.single_action_space.n
     feature_dim = feature_dim * opt.nb_stacked_frames
 

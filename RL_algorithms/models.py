@@ -22,8 +22,6 @@ class ActorModel(nn.Module):
         
         return x
     
-    
-
 class CriticModel(nn.Module):
 
     def __init__(self, num_features, activation = None, *args, **kwargs):
@@ -61,4 +59,13 @@ class Predictor_Model(nn.Module):
         return self.layer(torch.cat((encoded_features,action), dim= -1))
     
     
+class Encoder_Model(nn.Module):
+
+    def __init__(self,models, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.models = nn.Sequential(*models)
     
+    def forward(self, x):
+        return self.models(x)
+        
