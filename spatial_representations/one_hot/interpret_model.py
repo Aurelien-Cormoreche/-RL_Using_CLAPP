@@ -4,7 +4,7 @@ from spatial_representations.models import Spatial_Model
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 def value_for_misclassified(validation_DataLoader, model):
-    model.eval()
+    model.eval().to('mps')
     res1 = torch.tensor([], dtype= torch.float32, device= 'mps')
     res2 = torch.tensor([], dtype= torch.float32, device= 'mps')
     s = torch.nn.Softmax(dim= -1)
@@ -24,7 +24,19 @@ def value_for_misclassified(validation_DataLoader, model):
             res2 = torch.cat((res2, proba_preds.squeeze()))
             
         return res1, res2
-        
+
+def show_wrongs(validation_DataLoader, model):
+    model.eval().to('mps')
+    wrongs_labels = torch.tensor([], dtype= torch.float32, device= 'mps')
+    with torch.no_grad():
+        for i, batch in enumerate(validation_DataLoader):
+            features, labels = batch
+            outputs = model(features)
+            predicted = outputs.argmax(dim = -1)
+            wrongs = (predicted != labels.squeeze())
+            wrongs_labels = torch.cat((wrongs_labels, predicted[wrongs]))
+            
+        return wrongs_labels 
 def share_of_well_classified_amongst_top_k(validation_DataLoader, model, k):
     model.eval()
     tot = 0
@@ -55,12 +67,23 @@ if __name__ == '__main__':
     plt.plot()
     plt.show()
     '''
-    l = []
-    for i in range(1,5):
-        res, size = share_of_well_classified_amongst_top_k(validation_DataLoader, one_hot_model, i)
-        l.append(res/size)
-    plt.plot(range(1,5),l)
-    plt.show()
+    def plot_share_of_correct_amongst_top_k():
+        l = []
+        for i in range(1,5):
+            res, size = share_of_well_classified_amongst_top_k(validation_DataLoader, one_hot_model, i)
+            l.append(res/size)
+        plt.plot(range(1,5),l)
+        plt.show()
+
+    def plot_wrongly_classified():
+        plt.hist(show_wrongs(validation_DataLoader, one_hot_model).cpu().numpy(), bins= 32)
+        plt.show()
+
+    plot_wrongly_classified()
+
+
+
+
 
 
     

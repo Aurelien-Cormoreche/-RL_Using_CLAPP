@@ -50,14 +50,15 @@ if __name__ == '__main__':
             teleport_agent(val[t, :-1], val[t, -1], agent)
     
         for j in range(specs.num_turns):
-            obs = envs.step(np.zeros((specs.num_envs)))[0]
+            for _ in range(6):
+                obs = envs.step(np.zeros((specs.num_envs)))[0]
             val[:, -1] +=  math.pi * 2/ 4
             pos = i * specs.num_envs * specs.num_turns + j * specs.num_turns
             features = encoder(torch.tensor(np.expand_dims(obs, axis = 1), dtype= torch.float32, device= device))
             features_dataset[pos: pos + specs.num_envs] = features
             labels_dataset[pos: pos + specs.num_envs] = idx.unsqueeze(dim= -1)
             idx += 1
-
+        
     features_dataset = features_dataset.cpu()
     labels_dataset = labels_dataset.cpu()
     torch.save(features_dataset,'dataset/T_maze_CLAPP_one_hot/features.pt')
