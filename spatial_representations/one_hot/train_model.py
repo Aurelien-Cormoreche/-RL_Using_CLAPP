@@ -24,7 +24,7 @@ def train_offline(device):
     warmup_steps = 30
     n_elements = 4096
     checkpoint_model = 250
-    
+
     create_ml_flow_experiment('one_hot_training_supervised')
     mlflow.start_run()
     mlflow.log_params(
@@ -38,6 +38,7 @@ def train_offline(device):
             'num_epochs' : num_epochs
             }
     )
+
     #pca =createPCA(None, f'dataset/T_maze_CLAPP_one_hot/features.pt', None, None, input_dim, n_elements )
     #t = lambda x : torch.tensor(pca.transform(x.to('cpu').numpy().reshape(1, -1)), device= device)
     dataset = Dataset_One_Hot('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',device= device, transforms= None)
