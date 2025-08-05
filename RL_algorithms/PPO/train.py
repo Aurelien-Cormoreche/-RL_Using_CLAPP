@@ -29,7 +29,7 @@ def ppo_log_params(opt):
         }
     )
 
-def ppo_metrics(epoch, variables):
+def ppo_metrics(opt, epoch, variables):
     _, _, _, _, _, _, tot_loss_actor, tot_loss_critic, tot_loss, tot_entropy, samples_num, update, num_updates = variables
     mlflow.log_metrics(
         {
