@@ -15,11 +15,12 @@ def get_features_from_state(opt,n_state, agent, device):
     
 
 def save_models_(opt, models_dict, agent, icm):
-    models_dict['actor'] = agent.actor.state_dict()
-    models_dict['critic'] = agent.critic.state_dict()
-    if opt.use_ICM:
-        models_dict['icm_predictor'] = icm.predictor_model.state_dict()
-    save_models(models_dict)
+    if opt.algorithm != 'prioritized_sweeping':
+        models_dict['actor'] = agent.actor.state_dict()
+        models_dict['critic'] = agent.critic.state_dict()
+        if opt.use_ICM:
+            models_dict['icm_predictor'] = icm.predictor_model.state_dict()
+        save_models(models_dict)
 
 
             

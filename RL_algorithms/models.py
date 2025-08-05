@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Linear, ReLU, GELU, LeakyReLU, Softmax, Tanh, Identity
-
+from collections import defaultdict
 
 class ActorModel(nn.Module):
     def __init__(self, num_features, num_actions,*args, **kwargs):
@@ -67,5 +67,62 @@ class Encoder_Model(nn.Module):
         self.models = nn.Sequential(*models)
     
     def forward(self, x):
-        return self.models(x)
+        x = self.models(x)
+        return x
+    
+
+
+class Discrete_Maze_Model():
+
+    def __init__(self, num_states, num_actions):
+        self.predicted_rewards = torch.zeros((num_states, num_actions))
+        self.times_action_taken_in_state = defaultdict(lambda : defaultdict(int))
+        self.times_state_from_state_action = defaultdict(lambda : defaultdict(lambda : defaultdict(int)))
+        self.states_pointing_to = [set() for _ in range(num_states)]
+        self.num_actions = num_actions
+        self.num_states = num_states
+
+
+    def predicted_reward(self, state, action):
+        return self.predicted_rewards[state, action]
+    
+    def add(self, old_state, action, new_state, reward):
+        self.states_pointing_to[new_state].add((old_state, action))
+    
+        self.times_action_taken_in_state[old_state][action] += 1
+
+        self.times_state_from_state_action[old_state][action][new_state] += 1
+        
+        self.predicted_rewards[old_state, action] = (self.predicted_rewards[old_state, action] * (self.times_action_taken_in_state[old_state][action] - 1) + reward) /  self.times_action_taken_in_state[old_state][action]
+
+    
+    def predict(self, state, action):
+        dict_nums = self.times_state_from_state_action[state][action]
+        tot_num = self.times_action_taken_in_state[state][action]
+        probas_states = torch.tensor(list(dict_nums.values()))/ torch.tensor(tot_num)
+        index_state = torch.distributions.Categorical(probas_states).sample()
+        new_state = list(dict_nums.keys())[index_state]
+        reward = self.predicted_reward(state, action)
+        return new_state, reward
+    
+    def leading_to(self, state):
+        return self.states_pointing_to[state]
+
+
+
+
+
+
+        
+
+        
+        
+
+
+    
+
+    
+
+    
+        
         

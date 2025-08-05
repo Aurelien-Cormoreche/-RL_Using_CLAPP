@@ -6,7 +6,7 @@ from .trainer_utils import save_models_
 from .actor_critic.train import actor_critic_train, actor_critic_metrics, actor_critic_log_params, actor_critic_modules, actor_critic_init
 from .PPO.train import ppo_log_params, ppo_modules, ppo_collector, ppo_updator, ppo_metrics, ppo_init
 from .Reinforce_baseline.train import reinforce_baseline_collector, reinforce_baseline_updator, reinforce_baseline_metrics, reinforce_baseline_modules, reinforce_baseline_init, reinforce_baseline_log_params
-
+from .prioritized_sweeping.train import prioritized_sweeping_init, prioritized_sweeping_log_params, prioritized_sweeping_metrics, prioritized_sweeping_modules, prioritized_sweeping_train
 class Trainer:
     def __init__(self, opt, envs,  encoder, feature_dim, action_dim):
        
@@ -40,6 +40,13 @@ class Trainer:
             self.modules_func = reinforce_baseline_modules
             self.ini_variables_func = reinforce_baseline_init
             self.log_params_func = reinforce_baseline_log_params
+        elif self.algorithm == 'prioritized_sweeping':
+            self.training_func = prioritized_sweeping_train
+            self.call_func = self.__train_online
+            self.metrics_func = prioritized_sweeping_metrics
+            self.modules_func = prioritized_sweeping_modules
+            self.ini_variables_func = prioritized_sweeping_init
+            self.log_params_func = prioritized_sweeping_log_params
         else:
             raise Exception('algorithm not found')
     
@@ -56,7 +63,9 @@ class Trainer:
                 self.__log_metrics()
         if self.epoch % self.opt.checkpoint_interval == 0:
             agent = self.modules[0]
-            icm = self.modules[1]
+            icm = None
+            if self.opt.use_ICM:
+                icm = self.modules[1]
             save_models_(self.opt, self.models_dict, agent, icm)
 
     def __train_online(self):

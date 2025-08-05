@@ -45,15 +45,15 @@ def parsing():
     parser.add_argument('--tau', default= 0.05, type= float, help='by how much we update the taget network')
 
     parser.add_argument('--schedule_type_critic', default='linear', help='schedule type for the critic learning rate')
-    parser.add_argument('--critic_lr_i', type=float, default=1e-4, help='initial learning rate for the critic')
-    parser.add_argument('--critic_lr_e', type=float, default=1e-4, help='end learning rate for the critic')
-    parser.add_argument('--critic_lr_m', type=float, default=1e-4, help='max critic learning rate (for warmup jobs)')
+    parser.add_argument('--critic_lr_i', type=float, default=1e-2, help='initial learning rate for the critic')
+    parser.add_argument('--critic_lr_e', type=float, default=1e-2, help='end learning rate for the critic')
+    parser.add_argument('--critic_lr_m', type=float, default=1e-2, help='max critic learning rate (for warmup jobs)')
     parser.add_argument('--critic_len_w', type=int, default=10, help='warmup length for the critic learning rate scheduler')
 
     parser.add_argument('--schedule_type_actor', default='linear', help='schedule type for the actor learning rate')
-    parser.add_argument('--actor_lr_i', type=float, default=9e-5, help='initial learning rate for the actor')
-    parser.add_argument('--actor_lr_e', type=float, default=9e-5, help='end learning rate for the actor')
-    parser.add_argument('--actor_lr_m', type=float, default=1e-4, help='max actor learning rate (for warmup jobs)')
+    parser.add_argument('--actor_lr_i', type=float, default=9e-3, help='initial learning rate for the actor')
+    parser.add_argument('--actor_lr_e', type=float, default=9e-3, help='end learning rate for the actor')
+    parser.add_argument('--actor_lr_m', type=float, default=1e-3, help='max actor learning rate (for warmup jobs)')
     parser.add_argument('--actor_len_w', type=int, default=100, help='warmup length for the actor learning rate scheduler')
 
     parser.add_argument('--schedule_type_theta_lam', default='linear', help='schedule type for the actor eligibility trace delay')
@@ -72,13 +72,21 @@ def parsing():
     parser.add_argument('--baseline_i', type=float, default=0.00005, help='initial baseline ')
     parser.add_argument('--baseline_e', type=float, default=0.00005, help='end baseline')
 
+
+    parser.add_argument('--schedule_type_epsilon', default='linear', help='schedule type for the baseline if we run reinforce with artificial baseline')
+    parser.add_argument('--epsilon_i', type=float, default=1.0, help='initial baseline ')
+    parser.add_argument('--epsilon_e', type=float, default=0.0, help='end baseline')
+
+    parser.add_argument('--alpha', default= 0.1, help= 'alpha for updating the q values')
+    parser.add_argument('--threshold_pqueue', default= 0.05, help= 'threshold for adding states action pairs in queue')
+    parser.add_argument('--repeat_updates_p_sweep', default= 5, help= 'num updates in prioritized sweeping')
+
     parser.add_argument('--entropy', action='store_true', help='add an entropy component to the loss')
     parser.add_argument('--schedule_type_entropy', default='constant', help='schedule type for the critic coefficient')
     parser.add_argument('--coeff_entropy_i', type=float, default=0.0005, help='initial coefficient of the critic in the PPO loss')
     parser.add_argument('--coeff_entropy_e', type=float, default=0.005, help='end coefficient of the critic in the PPO loss')
     parser.add_argument('--coeff_entropy_m', type=float, default=0.005, help='max coefficient of the critic (for warmup schedule)')
     parser.add_argument('--coeff_entropy_len_w', type=int, default=2000, help='warmup length for the critic coefficient schedule')
-
 
     parser.add_argument('--len_rollout', default= 1024, type= int, help= 'length of the continuous rollout')
     parser.add_argument('--num_updates', default= 8, type= int, help= 'number of steps for the optimizer')

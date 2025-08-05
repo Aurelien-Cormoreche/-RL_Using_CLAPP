@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
-
-from .models import ActorModel, CriticModel
-
+import random 
+from .models import ActorModel, CriticModel, Discrete_Maze_Model
 
 class AC_Agent(nn.Module):
 
@@ -67,8 +66,44 @@ class A_Agent(AC_Agent):
 
     
     
+class Discrete_Model_Based_Agent():
+    def __init__(self, num_states, num_actions, encoder, epsilon, alpha, gamma):
+        self.num_states = num_states
+        self.num_actions = num_actions
+        self.world_model = Discrete_Maze_Model(num_states, num_actions)
+        self.encoder = encoder
+        self.epsilon = epsilon
+        self.qvalues = torch.zeros((num_states, num_actions))
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def val(self, state, action):
+        return self.qvalues[state, action]
     
+    def max_val(self, state):
+        return max([self.qvalues[state, a] for a in range(self.num_actions)])
     
+    def get_features(self, obs):
+        return self.encoder(obs).cpu()
+    
+    def update_q(self, state, action, new_state, reward):
+        max_next_s = self.max_val(new_state)
+        self.qvalues[state, action] += self.alpha * (reward + self.gamma * max_next_s - self.val(state, action))
+    
+    def get_action_from_state(self, state):
+        eps = random.random()
+        if eps < self.epsilon.get_lr():
+            action =  random.choice(range(self.num_actions))
+        else:
+            curr = self.qvalues[state, 0]
+            action = 0
+            for a in range(self.num_actions):
+                if self.qvalues[state, a] > curr:
+                    action = a
+        return action
+
+                
+
         
 
     

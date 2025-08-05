@@ -9,6 +9,7 @@ from utils.utils import save_models, create_ml_flow_experiment, parsing, create_
 from spatial_representations.models import Spatial_Model
 import torch
 import torch.nn.functional as F
+import torch.nn as nn
 from torchvision.models import resnet50, ResNet50_Weights
 
 import numpy as np
@@ -34,9 +35,10 @@ def train(opt, envs, model_path, device, models_dict):
     
     if opt.encoder.endswith('one_hot'):
         one_hot_model = Spatial_Model(feature_dim, [32])
-        one_hot_model.load_state_dict(torch.load('spatial_representations/one_hot/model.pt'))
+        one_hot_model.load_state_dict(torch.load('spatial_representations/one_hot/model.pt', map_location= device))
         feature_dim = 32
         encoder_models.append(one_hot_model)
+        encoder_models.append(nn.Softmax(dim= -1))
         print('using one hot')
     
     encoder = Encoder_Model(encoder_models)
