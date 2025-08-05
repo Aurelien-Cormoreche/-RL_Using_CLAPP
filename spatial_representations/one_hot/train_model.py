@@ -5,11 +5,42 @@ from dataset.T_maze_CLAPP_one_hot.dataset_one_hot import Dataset_One_Hot
 from spatial_representations.models import Spatial_Model
 from torch.optim import AdamW
 from utils.utils_torch import CosineAnnealingWarmupLr
-from utils.utils import create_ml_flow_experiment, select_device, parsing, createPCA
+from utils.utils import create_ml_flow_experiment, select_device, parsing, createPCA, create_envs
 from torch.nn import CrossEntropyLoss
 import mlflow
 import torch.nn.functional as F
 import tqdm
+import random
+def train_online(args):
+    num_steps = 32_000_000
+    lr = 1e-6
+    input_dim = 1024
+    output_dim = 32
+
+    create_ml_flow_experiment('one_hot_training_online')
+    mlflow.start_run()
+    mlflow.log_params(
+        {
+            'lr' : lr,
+            'num_steps' : num_steps
+            }
+    )
+
+    envs = create_envs(args, 1, reward= False)
+    envs.reset(seed= args.seed)
+
+    model = Spatial_Model(input_dim, [output_dim]).to(device)
+    optimzer = AdamW(model.parameters(), lr, weight_decay=0.001 , amsgrad= True)
+
+    loss_fn = torch.nn.CrossEntropyLoss()
+
+    for step in range(num_steps):
+        obs = envs.step(random.randint(0,2))[0]
+
+        output = model(obs)
+        
+
+
 
 def train_offline(device):
 

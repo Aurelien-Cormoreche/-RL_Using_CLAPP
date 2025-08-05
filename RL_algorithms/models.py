@@ -7,8 +7,11 @@ from collections import defaultdict
 class ActorModel(nn.Module):
     def __init__(self, num_features, num_actions,*args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self.layer = Linear(num_features, num_actions)
+        hidden_dim = 512
+        self.layer = nn.Sequential(
+            Linear(num_features, hidden_dim),
+            nn.GELU(),
+            Linear(hidden_dim, num_actions))
         self.softmax = Softmax(dim= -1)
         for p in self.parameters():
             nn.init.zeros_(p)
@@ -19,15 +22,17 @@ class ActorModel(nn.Module):
         else:
            x = self.layer(x)
         x = self.softmax(x)
-        
         return x
     
 class CriticModel(nn.Module):
 
     def __init__(self, num_features, activation = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self.layer = Linear(num_features, 1)
+        hidden_dim = 512
+        self.layer = self.layer = nn.Sequential(
+            Linear(num_features, hidden_dim),
+            nn.GELU(),
+            Linear(hidden_dim, 1))
         for p in self.parameters():
             nn.init.zeros_(p)
     
@@ -44,9 +49,6 @@ class CriticModel(nn.Module):
         
     def forward(self, x):
        return self.activation(self.layer(x))
-
-
-
 
 class Predictor_Model(nn.Module):
 
@@ -92,7 +94,7 @@ class Discrete_Maze_Model():
         self.times_action_taken_in_state[old_state][action] += 1
 
         self.times_state_from_state_action[old_state][action][new_state] += 1
-        
+
         self.predicted_rewards[old_state, action] = (self.predicted_rewards[old_state, action] * (self.times_action_taken_in_state[old_state][action] - 1) + reward) /  self.times_action_taken_in_state[old_state][action]
 
     
