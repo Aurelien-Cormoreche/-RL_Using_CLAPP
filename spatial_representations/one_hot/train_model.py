@@ -1,46 +1,76 @@
 import torch
+import os
 from torch.utils.data import random_split
 from torch.utils.data import DataLoader
+from torchrl.data import ReplayBuffer, ListStorage
 from dataset.T_maze_CLAPP_one_hot.dataset_one_hot import Dataset_One_Hot
 from spatial_representations.models import Spatial_Model
 from torch.optim import AdamW
 from utils.utils_torch import CosineAnnealingWarmupLr
 from utils.utils import create_ml_flow_experiment, select_device, parsing, createPCA, create_envs
+from utils.load_standalone_model import load_model
 from torch.nn import CrossEntropyLoss
 import mlflow
 import torch.nn.functional as F
 import tqdm
+
+
 import random
 def train_online(args):
-    num_steps = 32_000_000
+    num_steps_collect = 64
+    num_epochs = 500000
     lr = 1e-6
     input_dim = 1024
     output_dim = 32
-
+    batch_size = 32
+    size_replay_buffer = 1000
+    num_updates = 5
     create_ml_flow_experiment('one_hot_training_online')
     mlflow.start_run()
     mlflow.log_params(
         {
             'lr' : lr,
-            'num_steps' : num_steps
             }
     )
 
     envs = create_envs(args, 1, reward= False)
-    envs.reset(seed= args.seed)
-
+    state_ini = envs.reset(seed= args.seed)
+    state_ini = torch.unsqueeze(state_ini, dim= 1)
+    state_ini = state_ini.reshape(state_ini.shape[0], state_ini.shape[3], state_ini.shape[1], state_ini.shape[2])
     model = Spatial_Model(input_dim, [output_dim]).to(device)
     optimzer = AdamW(model.parameters(), lr, weight_decay=0.001 , amsgrad= True)
-
+    encoder = load_model(os.path.abspath('trained_models')).to(device).eval().requires_grad_(False)
     loss_fn = torch.nn.CrossEntropyLoss()
 
-    for step in range(num_steps):
-        obs = envs.step(random.randint(0,2))[0]
+    replay_buffer = ReplayBuffer(storage= ListStorage(max_size= size_replay_buffer), batch_size= batch_size)
 
-        output = model(obs)
+    for epoch in range(num_epochs):
+        collected = torch.empty((num_steps_collect, state_ini.shape[1], state_ini.shape[2], state_ini.shape[3]), dtype= torch.float32, device= args.device)
+        labels_collected = torch.empty((num_steps_collect, 1), dtype= torch.float32, device= device)
+        for step in range(num_steps_collect):
+            obs = envs.step(random.randint(0,2))[0]
+            obs = torch.tensor(obs, dtype= torch.float32, device= args.device)
+            obs = obs.reshape(obs.shape[3], obs.shape[1], obs.shape[2])
+            collected[step] = obs
+
+
+        encoded = encoder(collected)
+        to_store = torch.vstack((encoded, labels_collected))
+        replay_buffer.extend(to_store)
+        tot_accuracy = 0
+        for upating in range(num_updates):
+            
+            sampled = replay_buffer.sample()
+            features = sampled[:, :-1]
+            labels = sampled[:, -1]
+            outputs = model(features)
+            optimzer.zero_grad()
+            loss = loss_fn(outputs, labels)
+            loss.backward()
+            optimzer.step()
+            tot_accuracy += (outputs == labels).sum().item()/len(labels)
         
-
-
+        mlflow.log_metric('accuracy', tot_accuracy/num_updates, step= epoch)
 
 def train_offline(device):
 

@@ -125,7 +125,7 @@ if __name__ == '__main__':
         #ini_no_target = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/c64f82c8acdb4bd8b758891bb190328d/metrics/length_episode', t)
         good_ac =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/508181377465869700/6e353a1dca9c42038043434be8c57f30/metrics/length_episode', t)
         one_hot_ac = compute_moving_average('mlruns/647803037565373307/802c653dc9504059b3004a5ffc76809b/metrics/length_episode', t)
-
+        try2layers = compute_moving_average('//Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/bb5d6cb8bc2e419cb2be48c976080f41/metrics/length_episode', t)
 
         #plt.plot(baseline_2)
         #plt.plot(baseline_resnet)
@@ -133,6 +133,7 @@ if __name__ == '__main__':
         #plt.plot(ini_no_target)
         #plt.plot(one_hot_ac)
         plt.plot(good_ac)
+        plt.plot(try2layers)
         plt.show()
 
     #print(count_steps(3,'/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/d889e0f834f04ed6973d6db00e43635a/metrics/length_episode'))
