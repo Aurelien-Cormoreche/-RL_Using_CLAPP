@@ -5,7 +5,8 @@ import argparse
 import os
 import numpy as np 
 import gymnasium as gym
-from sklearn.decomposition import PCA
+#from sklearn.decomposition import PCA
+from utils.dimensionality_reduction import PCA
 from mlflow import MlflowClient, MlflowException
 
 from utils.load_standalone_model import load_model
@@ -169,14 +170,13 @@ def collect_and_store_features(args, filename, encoder, env):
 def createPCA(args, filename, env, encoder, n_components, n_elements = -1) :
     if os.path.exists(filename):
         if filename.endswith('pt'):
-            features = torch.load(filename, map_location= 'cpu')
-            features = features.numpy()
+            features = torch.load(filename, map_location= 'mps')
         else: 
-            features = np.load(filename)
+            features = torch.from_numpy(np.load(filename)).to('mps')
     else:
         features = collect_and_store_features(args, filename, encoder, env)
     features = features[:n_elements, :]
-    pca = PCA(n_components= n_components)
+    pca = PCA(size_input= features.shape[0], num_components= n_components)
     pca.fit(features)
     return pca
     

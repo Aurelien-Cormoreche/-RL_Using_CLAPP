@@ -116,9 +116,8 @@ def train_offline(device):
             }
     )
 
-    #pca =createPCA(None, f'dataset/T_maze_CLAPP_one_hot/features.pt', None, None, input_dim, n_elements )
-    #t = lambda x : torch.tensor(pca.transform(x.to('cpu').numpy().reshape(1, -1)), device= device)
-    dataset = Dataset_One_Hot('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',device= device, transforms= None)
+    pca =createPCA(None, f'dataset/T_maze_CLAPP_one_hot/features.pt', None, None, input_dim, n_elements )
+    dataset = Dataset_One_Hot('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',device= device, transforms= pca)
     train_dataset, validation_dataset = random_split(dataset,[1-validation_share, validation_share])
     train_loader = DataLoader(train_dataset, batch_size_training, shuffle= True, pin_memory= True)
     validation_loader = DataLoader(validation_dataset, batch_size_validation, shuffle= False, pin_memory= True)
