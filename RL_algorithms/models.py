@@ -10,7 +10,7 @@ class ActorModel(nn.Module):
         hidden_dim = 512
         self.layer = nn.Sequential(
             Linear(num_features, hidden_dim),
-            nn.GELU(),
+            nn.ReLU(),
             Linear(hidden_dim, num_actions))
         self.softmax = Softmax(dim= -1)
         for p in self.parameters():
@@ -31,7 +31,7 @@ class CriticModel(nn.Module):
         hidden_dim = 512
         self.layer = self.layer = nn.Sequential(
             Linear(num_features, hidden_dim),
-            nn.GELU(),
+            nn.ReLU(),
             Linear(hidden_dim, 1))
         for p in self.parameters():
             nn.init.zeros_(p)

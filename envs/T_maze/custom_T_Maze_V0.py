@@ -137,8 +137,8 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
                 self.entities.remove(self.key)
 
             info["goal_pos"] = self.box.pos
-            info['agent_pos'] = (self.agent.pos - [5.26,0  ,0 ])/[10.96,13.7 ,1]
-            info['agent_dir'] = (self.agent.dir % (math.pi * 2))/(math.pi * 2)
+            info['agent_pos'] = self.agent.pos
+            info['agent_dir'] = self.agent.dir
 
         return obs, reward, termination, truncation, info
 

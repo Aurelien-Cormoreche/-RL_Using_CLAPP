@@ -1,5 +1,7 @@
 import torch
 import os
+import math
+
 from torch.utils.data import random_split
 from torch.utils.data import DataLoader
 from torchrl.data import ReplayBuffer, ListStorage
@@ -48,10 +50,11 @@ def train_online(args):
         collected = torch.empty((num_steps_collect, state_ini.shape[1], state_ini.shape[2], state_ini.shape[3]), dtype= torch.float32, device= args.device)
         labels_collected = torch.empty((num_steps_collect, 1), dtype= torch.float32, device= device)
         for step in range(num_steps_collect):
-            obs = envs.step(random.randint(0,2))[0]
+            obs, _, _, _, info = envs.step(random.randint(0,2))
             obs = torch.tensor(obs, dtype= torch.float32, device= args.device)
             obs = obs.reshape(obs.shape[3], obs.shape[1], obs.shape[2])
             collected[step] = obs
+            labels_collected[step] = find_agent_label(info)
 
 
         encoded = encoder(collected)
@@ -59,7 +62,6 @@ def train_online(args):
         replay_buffer.extend(to_store)
         tot_accuracy = 0
         for upating in range(num_updates):
-            
             sampled = replay_buffer.sample()
             features = sampled[:, :-1]
             labels = sampled[:, -1]
@@ -71,6 +73,20 @@ def train_online(args):
             tot_accuracy += (outputs == labels).sum().item()/len(labels)
         
         mlflow.log_metric('accuracy', tot_accuracy/num_updates, step= epoch)
+
+def find_agent_label(info):
+    pos = info['agent_pos']
+    direction = info['agent_dir']
+
+    dir_idx = (direction + math.pi/4)// (math.pi/2)
+    
+    horizontal = (pos[0] < 8)
+
+    if horizontal:
+        pos_idx = (pos[0] + 0.22)//2.74
+    else:
+        pos_idx = (pos[2] + 6.85)//2.74 + 4
+    return pos_idx * 4 + dir_idx
 
 def train_offline(device):
 
