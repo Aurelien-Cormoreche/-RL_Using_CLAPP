@@ -20,7 +20,7 @@ def save_models_(opt, models_dict, agent, icm):
         models_dict['critic'] = agent.critic.state_dict()
         if opt.use_ICM:
             models_dict['icm_predictor'] = icm.predictor_model.state_dict()
-        save_models(models_dict)
+        save_models(opt,models_dict)
 
 
             

@@ -28,6 +28,7 @@ def parsing():
     parser.add_argument('--keep_patches', action= 'store_true', help= 'keep the patches for the encoder')
     parser.add_argument('--seed', default= 1, type= int, help= 'manual seed for training')
     parser.add_argument('--checkpoint_interval', default= 1000, type= int, help= 'interval at which to save the model weights')
+    parser.add_argument('--save_name', default='saved_from_run.pt', type= str, help= 'name of the files where we can save the model')
     parser.add_argument('--one_layer', default= True, type=bool, help='wether the models are one layer')
     #hyperparameters for the training
     parser.add_argument('--num_epochs', default= 80000, type= int, help= 'number of epochs for the training')
@@ -148,8 +149,8 @@ def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dic
             mlflow.end_run()
             
 
-def save_models(models_dict):
-    torch.save(models_dict,f"{os.environ['SAVED_MODELS_S2025']}/saved_from_run.pt")
+def save_models(opt,models_dict):
+    torch.save(models_dict,f"{os.environ['SAVED_MODELS_S2025']}/{opt.save_name}")
 
 
 def create_ml_flow_experiment(experiment_name,uri =f"file:{os.environ['ML_RUNS_S2025']}"):
