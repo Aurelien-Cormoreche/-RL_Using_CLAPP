@@ -112,6 +112,11 @@ def reduce_data_for_layers(filename_features, filename_labels, num_samples, meth
         box = data_labels % 4
     elif delimiter == 'space':
         box = data_labels // 4
+    elif delimiter == 'corridor':
+        n = torch.full_like(data_labels, 2)
+        n[ data_labels <= 11] = 0
+        n[ (data_labels>= 20) & (data_labels <= 23)] = 1
+        box = n
     return points, box
 
 
@@ -140,6 +145,59 @@ def plot_reduced_dimension(points, colors):
 
     plt.show()
 
+def get_distance_vs_act_distance(reduction, method, model, filename_features, filename_labels, num_samples, plot):
+    if reduction:
+        p, box = reduce_data_for_layers(filename_features, filename_labels, num_samples, method, 'space', model)
+    else:
+        data_features = torch.load(filename_features)[:num_samples]
+        data_labels = torch.load(filename_labels)[:num_samples]
+        model.layer[-1] = torch.nn.Identity()
+        with torch.no_grad():
+            p = model(data_features)
+        box = data_labels//4
+    locs = torch.empty((box.shape[0],2))
+    box.squeeze_()
+    locs[:, 0] = box
+    locs[:, 1] = box
+    mask = box > 3
+    locs[mask,0] =  3
+    mask = box <= 3
+    locs[mask,1] = 0
+    mask = box > 3
+    locs[mask,1] = box[box > 3] - 6
+    nlocs = locs.unsqueeze(1)
+    locs = locs.unsqueeze(0)
+    real_dists = torch.abs(locs[:,:,0] - nlocs[:,:,0]) + torch.abs(locs[:,:,1] - nlocs[:,:,1])
+    np = p.unsqueeze(1)
+    p = p.unsqueeze(0)
+    p_dists = torch.sum(torch.abs(p - np), dim = -1)
+
+    mask_flattening = torch.tril(torch.ones_like(real_dists).bool())
+    real_dists = real_dists[mask_flattening].flatten()
+    p_dists = p_dists[mask_flattening].flatten()
+    unique_real_dist = real_dists.unique()
+    avg_pdist_per_real = []
+    for r_dist in unique_real_dist:
+        mask = real_dists == r_dist
+        avg_pdist_per_real.append(p_dists[mask].mean().item())
+    if plot:
+        plt.plot(avg_pdist_per_real)
+        plt.show()
+    return avg_pdist_per_real
+def plot_evolution_of_diffs(absolute,indexi,indexe):
+    models = ['2layers1.pt', '2layers2.pt', '2layers3.pt', '2layers10.pt', '2layers30.pt', '2layers80.pt']
+    res = []
+    for m in models:
+        model = CriticModel(1024)
+        model.load_state_dict(torch.load(f'/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/{m}', map_location='cpu')['critic'])
+        r = get_distance_vs_act_distance(False, 'PCA', model, 'dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',800, False)
+        diff = r[indexe] - r[indexi]
+        print(diff)
+        if not absolute:
+            diff = diff/r[indexi]
+        res.append(diff)
+    plt.plot(res)
+    plt.show()
 
 def plot_runs():
 
@@ -184,15 +242,16 @@ def plot_runs():
 
 if __name__ == '__main__':
 
-    plot_runs()
+    #plot_runs()
 
  
     #visualize_weights('trained_models/saved_from_run.pt', 'critic')
     #meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', '/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layers1.pt', 'critic')
-    model = CriticModel(1024)
-    model.load_state_dict(torch.load('/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layers10.pt', map_location='cpu')['critic'])
-    p, c = reduce_data_for_layers('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',5000, 'PCA', 'space', model)
+    model = ActorModel(1024,3)
+    model.load_state_dict(torch.load('/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layers80.pt', map_location='cpu')['actor'])
+    p, c = reduce_data_for_layers('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',20000, 'PCA', 'direction_space', model)
     plot_reduced_dimension(p, c)
 
+    #plot_evolution_of_diffs(False,0, 1)       
     #plot_matrix('trained_models/encoded_features_CLAPP.npy')
  

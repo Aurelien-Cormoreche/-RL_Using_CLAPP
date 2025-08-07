@@ -5,14 +5,16 @@ from torch.nn import Linear, ReLU, GELU, LeakyReLU, Softmax, Tanh, Identity
 from collections import defaultdict
 
 class ActorModel(nn.Module):
-    def __init__(self, num_features, num_actions,*args, **kwargs):
+    def __init__(self, num_features, num_actions,one_layer = True,*args, **kwargs):
         super().__init__(*args, **kwargs)
         hidden_dim = 512
-
-        self.layer = nn.Sequential(
-            Linear(num_features, hidden_dim),
-            ReLU(),
-            Linear(hidden_dim, num_actions))
+        if one_layer:
+            self.layer == nn.Sequential(Linear(num_features, num_actions))
+        else:
+            self.layer = nn.Sequential(
+                Linear(num_features, hidden_dim),
+                ReLU(),
+                Linear(hidden_dim, num_actions))
         self.softmax = Softmax(dim= -1)
         
         nn.init.zeros_(self.layer[-1].bias)
@@ -27,15 +29,17 @@ class ActorModel(nn.Module):
     
 class CriticModel(nn.Module):
 
-    def __init__(self, num_features, activation = None, *args, **kwargs):
+    def __init__(self, num_features, activation = None, one_layer = True, *args, **kwargs):
         super().__init__(*args, **kwargs)
         hidden_dim = 512
        
-        self.layer = nn.Sequential(
-            Linear(num_features, hidden_dim),
-            ReLU(),
-            Linear(hidden_dim, 1)
-        )
+        if one_layer:
+            self.layer == nn.Sequential(Linear(num_features, 1))
+        else:
+            self.layer = nn.Sequential(
+                Linear(num_features, hidden_dim),
+                ReLU(),
+                Linear(hidden_dim, 1))
 
         nn.init.zeros_(self.layer[-1].weight)
         nn.init.zeros_(self.layer[-1].bias)

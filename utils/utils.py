@@ -28,7 +28,7 @@ def parsing():
     parser.add_argument('--keep_patches', action= 'store_true', help= 'keep the patches for the encoder')
     parser.add_argument('--seed', default= 1, type= int, help= 'manual seed for training')
     parser.add_argument('--checkpoint_interval', default= 1000, type= int, help= 'interval at which to save the model weights')
-
+    parser.add_argument('--one_layer', default= True, type=bool, help='wether the models are one layer')
     #hyperparameters for the training
     parser.add_argument('--num_epochs', default= 80000, type= int, help= 'number of epochs for the training')
     parser.add_argument('--gamma', default= 0.995, help= 'gamma for training in the environment')    
