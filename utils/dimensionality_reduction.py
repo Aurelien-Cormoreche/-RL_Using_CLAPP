@@ -20,4 +20,7 @@ class PCA(nn.Module):
     def forward(self, data):
         assert hasattr(self, 'Vh'), 'need to call fit'
         return (data - self.mean) @ self.Vh.T
+    
+
+
 

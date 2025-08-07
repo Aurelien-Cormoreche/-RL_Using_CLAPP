@@ -144,7 +144,6 @@ class CustomAdamEligibility():
     def accumulate(self):
         self.z = [z.mul_(self.beta1_schedule.get_lr() * self.gamma).add_(p.grad) for z, p in zip(self.z, self.model.parameters())]
 
-
     def step(self, advantage, entropy):
         eps = 1e-8
        
@@ -163,7 +162,7 @@ class CustomAdamEligibility():
                 p.add_(self.lr_schedule.get_lr()/ (torch.sqrt(v) + eps) * z)             
             self.it += 1
         else:
-            for p, z in zip( self.model.parameters(), z_hat):
+            for p, z in zip(self.model.parameters(), z_hat):
                 term_to_add = z
                 if self.entropy:
                     term_to_add += self.entropy_scheduler.get_lr() * p.grad 

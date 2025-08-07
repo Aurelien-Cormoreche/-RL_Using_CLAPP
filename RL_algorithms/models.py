@@ -8,13 +8,14 @@ class ActorModel(nn.Module):
     def __init__(self, num_features, num_actions,*args, **kwargs):
         super().__init__(*args, **kwargs)
         hidden_dim = 512
+
         self.layer = nn.Sequential(
             Linear(num_features, hidden_dim),
-            nn.ReLU(),
+            ReLU(),
             Linear(hidden_dim, num_actions))
         self.softmax = Softmax(dim= -1)
-        for p in self.parameters():
-            nn.init.zeros_(p)
+        
+        nn.init.zeros_(self.layer[-1].bias)
         
     def forward(self, x, temp = None):
         if temp : 
@@ -29,12 +30,15 @@ class CriticModel(nn.Module):
     def __init__(self, num_features, activation = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         hidden_dim = 512
-        self.layer = self.layer = nn.Sequential(
+       
+        self.layer = nn.Sequential(
             Linear(num_features, hidden_dim),
-            nn.ReLU(),
-            Linear(hidden_dim, 1))
-        for p in self.parameters():
-            nn.init.zeros_(p)
+            ReLU(),
+            Linear(hidden_dim, 1)
+        )
+
+        nn.init.zeros_(self.layer[-1].weight)
+        nn.init.zeros_(self.layer[-1].bias)
     
         if activation == 'ReLu':
             self.activation = ReLU()

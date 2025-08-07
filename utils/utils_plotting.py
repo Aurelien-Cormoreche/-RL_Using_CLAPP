@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-
+from RL_algorithms.models import CriticModel, ActorModel
+from dimensionality_reduction import PCA
 orientations = [0, 45, 90, 135, 180, 225, 270, 315]
 positions = [[1.37, 0, 0], [1.37, 0, 0], [4.11, 0, 0], [4.11, 0, 0], [6.8500000000000005, 0, 0], 
                  [6.8500000000000005, 0, 0], [9.78, 0, -5.4799999999999995], [9.78, 0, -2.7399999999999993], 
@@ -24,30 +25,30 @@ def visualize_weights(filepath, model_name):
     model_dict = dicts[model_name]
     print(model_dict['layer.weight'].shape)
     plt.plot(model_dict['layer.weight'][0].cpu())
-   
     plt.show()
+
 def plot_matrix(file_features):
     features = torch.from_numpy(np.load(file_features)).to('mps') 
-
     ln1 = torch.nn.LayerNorm((features.shape[1]), elementwise_affine= False).to('mps')
     transformedfeatures = ln1(features)
-    
-   
-
     cosine = transformedfeatures @ transformedfeatures.T
-
     plt.matshow(cosine.to('cpu').detach().numpy())
     plt.colorbar()
-    
     plt.show()
     
-
 def meusureIntensityAtPositions(file_features, file_model, model_name):
-    features = torch.from_numpy(np.load(file_features)).to('mps')
-    model = torch.load(file_model, weights_only= False, map_location=torch.device('mps'))[model_name]
-    weights = model['layer.weight'][0]
-    
-    cos_sim = (features @ weights.T).cpu()
+    features = torch.from_numpy(np.load(file_features))
+    model_weights = torch.load(file_model, weights_only= False, map_location='cpu')[model_name]
+   
+    if model_name == 'critic':
+        model = CriticModel(1024)
+       
+    if model_name == 'actor':
+        model = ActorModel(1024,3)
+    model.load_state_dict(model_weights)
+    model.requires_grad_(False)
+   
+    cos_sim = model(features)
     
     value_dict = {
     (pos[0], pos[2], ori): cos_sim[i * len(orientations) + j]
@@ -95,9 +96,53 @@ def count_steps(frameskip_num, file):
     data = load_file(file)
     return np.sum(data)/frameskip_num
 
+def reduce_data_for_layers(filename_features, filename_labels, num_samples, method, delimiter, model):
+    data_features = torch.load(filename_features)[:num_samples]
+    data_labels = torch.load(filename_labels)[:num_samples]
+    model.layer[-1] = torch.nn.Identity()
+    with torch.no_grad():
+        encoded_features = model(data_features)
+    if method == 'PCA':
+        pca = PCA(512, 3)
+        pca.fit(encoded_features)
+        points = pca(encoded_features)
+    if delimiter == 'direction_space':
+        box = data_labels
+    elif delimiter == 'direction':
+        box = data_labels % 4
+    elif delimiter == 'space':
+        box = data_labels // 4
+    return points, box
 
 
-if __name__ == '__main__':
+def plot_reduced_dimension(points, colors):
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Scatter plot with colors per class
+    scatter = ax.scatter(points[:, 0], points[:, 1], points[:, 2], c=colors, cmap='tab10', s=40, alpha=0.8)
+
+    # Label axes
+    ax.set_xlabel('PC1')
+    ax.set_ylabel('PC2')
+    ax.set_zlabel('PC3')
+    ax.set_title('3D PCA Projection of Activations')
+
+    # Optional: add legend using unique class labels
+    from matplotlib.lines import Line2D
+    unique_labels = np.unique(colors)
+    legend_elements = [
+        Line2D([0], [0], marker='o', color='w', label=f'Class {label}',
+            markerfacecolor=plt.cm.tab10(label / max(unique_labels)), markersize=10)
+        for label in unique_labels
+    ]
+    ax.legend(handles=legend_elements, loc='best')
+
+    plt.show()
+
+
+def plot_runs():
+
 
     tab = [1,50, 100,300,500]
     for t in tab:
@@ -125,11 +170,9 @@ if __name__ == '__main__':
         #ini_no_target = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/c64f82c8acdb4bd8b758891bb190328d/metrics/length_episode', t)
         good_ac =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/508181377465869700/6e353a1dca9c42038043434be8c57f30/metrics/length_episode', t)
         one_hot_ac = compute_moving_average('mlruns/647803037565373307/802c653dc9504059b3004a5ffc76809b/metrics/length_episode', t)
-        try2layers1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/360ac29b422d4b239c9a556bf40993e6/metrics/length_episode', t)  
-        try2layers2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/01fda0dafee64a0ab24c5bbff4451cb8/metrics/length_episode', t)
-        try2layers3 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/63c58c1413dc420f98471c19774adc5c/metrics/length_episode', t)
-        try2layers4 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/81018febe1c646b198623204df9e2b39/metrics/length_episode', t)
-        
+        random_baseline = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/360ac29b422d4b239c9a556bf40993e6/metrics/length_episode', t)  
+        try2layers1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/f376f623caad440c855f194ca708a13e/metrics/length_episode', t)  
+
         #plt.plot(baseline_2)
         #plt.plot(baseline_resnet)
         #plt.plot(ini_target)
@@ -137,18 +180,19 @@ if __name__ == '__main__':
         #plt.plot(one_hot_ac)
         #plt.plot(good_ac)
         plt.plot(try2layers1)
-        plt.plot(try2layers2)
-        plt.plot(try2layers3)
-        plt.plot(try2layers4)
         plt.show()
 
-    #print(count_steps(3,'/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/d889e0f834f04ed6973d6db00e43635a/metrics/length_episode'))
+if __name__ == '__main__':
+
+    plot_runs()
 
  
     #visualize_weights('trained_models/saved_from_run.pt', 'critic')
-    #meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', '/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/long_run_1.pt', 'critic')
-
+    #meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', '/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layers1.pt', 'critic')
+    model = CriticModel(1024)
+    model.load_state_dict(torch.load('/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layers10.pt', map_location='cpu')['critic'])
+    p, c = reduce_data_for_layers('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',5000, 'PCA', 'space', model)
+    plot_reduced_dimension(p, c)
 
     #plot_matrix('trained_models/encoded_features_CLAPP.npy')
-
  

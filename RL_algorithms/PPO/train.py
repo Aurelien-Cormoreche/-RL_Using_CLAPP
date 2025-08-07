@@ -166,8 +166,6 @@ def ppo_collector(opt, envs, modules, variables, epoch):
             for _ in range(opt.frame_skip):
                 count_num_steps_env += torch.ones_like(count_num_steps_env, dtype= torch.float32, device= opt.device)
                 n_state, rewards, terminated, truncated, _ = envs.step(actions_t.cpu().numpy())
-                if terminated or truncated:
-                    break
 
             batch_rewards[step] = torch.as_tensor(rewards,dtype= torch.float32, device= opt.device)
             
@@ -246,8 +244,7 @@ def collect_rollouts(opt, envs, device, agent, len_rollouts, feature_dim, action
             for _ in range(opt.frame_skip):
                 count_num_steps_env += torch.ones_like(count_num_steps_env, dtype= torch.float32, device= device)
                 n_state, rewards, terminated, truncated, _ = envs.step(actions_t.cpu().numpy())
-                if terminated or truncated:
-                    break
+   
 
             batch_rewards[step] = torch.as_tensor(rewards,dtype= torch.float32, device= device)
             
@@ -435,6 +432,15 @@ def update_agent(opt, num_updates, len_rollouts, num_envs, agent, agent_optimize
             tot_loss_critic += loss_critic
             tot_loss += loss
             tot_entropy += loss_entropy
+            mlflow.log_metrics(
+                {
+                    'loss_actor' : loss_actor,
+                    'loss_critic' : loss_critic,
+                    'tot_loss' : tot_loss,
+                    'tot_entropy' : loss_entropy
+                },
+                step = epoch* num_updates + update
+            )
 
   
 

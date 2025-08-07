@@ -61,12 +61,12 @@ class Trainer:
             self.variables = self.call_func()
             if self.opt.track_run:
                 self.__log_metrics()
-        if self.epoch % self.opt.checkpoint_interval == 0:
-            agent = self.modules[0]
-            icm = None
-            if self.opt.use_ICM:
-                icm = self.modules[1]
-            save_models_(self.opt, self.models_dict, agent, icm)
+            if self.epoch % self.opt.checkpoint_interval == 0:
+                agent = self.modules[0]
+                icm = None
+                if self.opt.use_ICM:
+                    icm = self.modules[1]
+                save_models_(self.opt, self.models_dict, agent, icm)
 
     def __train_online(self):
        return self.training_func(self.opt, self.envs, self.modules, self.variables, self.epoch)
