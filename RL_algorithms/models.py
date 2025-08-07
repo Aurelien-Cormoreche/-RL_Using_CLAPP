@@ -9,7 +9,7 @@ class ActorModel(nn.Module):
         super().__init__(*args, **kwargs)
         hidden_dim = 512
         if one_layer:
-            self.layer == nn.Sequential(Linear(num_features, num_actions))
+            self.layer = nn.Sequential(Linear(num_features, num_actions))
         else:
             self.layer = nn.Sequential(
                 Linear(num_features, hidden_dim),
@@ -34,7 +34,7 @@ class CriticModel(nn.Module):
         hidden_dim = 512
        
         if one_layer:
-            self.layer == nn.Sequential(Linear(num_features, 1))
+            self.layer = nn.Sequential(Linear(num_features, 1))
         else:
             self.layer = nn.Sequential(
                 Linear(num_features, hidden_dim),

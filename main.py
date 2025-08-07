@@ -32,6 +32,13 @@ def train(opt, envs, model_path, device, models_dict):
         assert not opt.greyscale
         feature_dim = 2048
         encoder_models.append(model_res)
+    elif opt.encoder.startswith('raw'):
+        feature_dim = 60 * 80
+        start_dim_flatten = -2
+        if not opt.greyscale:
+            feature_dim *= 3
+            start_dim_flatten = -3
+        encoder_models.append(torch.nn.Flatten(start_dim_flatten))
     
     if opt.encoder.endswith('one_hot'):
         one_hot_model = Spatial_Model(feature_dim, [32])
@@ -40,6 +47,7 @@ def train(opt, envs, model_path, device, models_dict):
         encoder_models.append(one_hot_model)
         encoder_models.append(nn.Softmax(dim= -1))
         print('using one hot')
+
     
     encoder = Encoder_Model(encoder_models)
     encoder = encoder.to(device).requires_grad_(False)
