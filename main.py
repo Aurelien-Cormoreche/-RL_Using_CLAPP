@@ -48,7 +48,7 @@ def train(opt, envs, model_path, device, models_dict):
         encoder_models.append(nn.Softmax(dim= -1))
         print('using one hot')
 
-    
+
     encoder = Encoder_Model(encoder_models)
     encoder = encoder.to(device).requires_grad_(False)
     encoder.compile(backend="aot_eager")

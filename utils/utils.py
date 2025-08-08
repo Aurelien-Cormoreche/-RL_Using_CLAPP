@@ -22,11 +22,13 @@ def parsing():
     parser.add_argument('--num_envs', type= int ,default= 8, help= 'the number of synchronous environment to spawn')
     parser.add_argument('--visible_reward', action= 'store_true', help= 'If the reward is a visible red box or not')
     parser.add_argument('--max_episode_steps', default= 1000, help= 'max number of steps per environment')
+    parser.add_argument('--no_images', action='store_true', help='wether to have the maze without any images')
     #arguments for the training
     parser.add_argument('--algorithm',default= 'actor_critic', help= 'type of RL algorithm to use')
     parser.add_argument('--encoder', default= "CLAPP", help="decide which encoder to use")
     parser.add_argument('--keep_patches', action= 'store_true', help= 'keep the patches for the encoder')
     parser.add_argument('--seed', default= 1, type= int, help= 'manual seed for training')
+    parser.add_argument('--log_models',action='store_true', help= 'wether to save the models')
     parser.add_argument('--checkpoint_interval', default= 1000, type= int, help= 'interval at which to save the model weights')
     parser.add_argument('--save_name', default='saved_from_run.pt', type= str, help= 'name of the files where we can save the model')
     parser.add_argument('--one_layer', default= True, type=bool, help='wether the models are one layer')
