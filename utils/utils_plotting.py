@@ -117,6 +117,12 @@ def reduce_data_for_layers(filename_features, filename_labels, num_samples, meth
         n[ data_labels <= 11] = 0
         n[ (data_labels>= 20) & (data_labels <= 23)] = 1
         box = n
+    elif delimiter == 'path':
+        path_labels = torch.tensor([3,7,8,11,20,23,23,27,28])
+        n = torch.full_like(data_labels, 0)
+        mask = torch.isin(data_labels, path_labels)
+        n[mask] = 1
+        box = n
     return points, box
 
 def plot_different_classes(points, box):
@@ -251,26 +257,26 @@ def plot_runs():
         #plt.plot(one_hot_ac)
         #plt.plot(good_ac)
         #plt.plot(try2layers1)
-        plt.plot(random_baseline)
+        #plt.plot(random_baseline)
         #plt.plot(comp_clapp1)
         #plt.plot(comp_raw1)
         #plt.plot(random_baseline)
-        #plt.plot(comp_raw5)
-        #plt.plot(comp_clapp5)
-        #plt.plot(comp_res1)
+        plt.plot(comp_raw5)
+        plt.plot(comp_clapp5)
+        plt.plot(comp_res1)
         plt.show()
 
 if __name__ == '__main__':
 
-    #plot_runs()
+    plot_runs()
 
  
     #visualize_weights('trained_models/saved_from_run.pt', 'critic')
     #meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', '/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layers1.pt', 'critic')
-    #model = ActorModel(1024,3,one_layer= False)
-    #model.load_state_dict(torch.load('/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layers80.pt', map_location='cpu')['actor'])
-    #p, c = reduce_data_for_layers('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',20000, 'PCA', 'space', model)
-
+    #model = CriticModel(1024,1,two_layers= True)
+    #model.load_state_dict(torch.load('/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layers80.pt', map_location='cpu')['critic'])
+    #p, c = reduce_data_for_layers('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',20000, 'PCA', 'path', model)
+    #plot_reduced_dimension(p, c)
     #l = get_distance_vs_act_distance(False, 'PCA', model, 'dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',800, False)
     #plot_evolution_of_diffs(False,0, 1)       
     #plot_matrix('trained_models/encoded_features_CLAPP.npy')
