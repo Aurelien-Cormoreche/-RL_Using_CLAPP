@@ -10,12 +10,13 @@ from ..agents import AC_Agent
 from ..models import CriticModel
 from ..exploration_modules import ICM, update_ICM_predictor
 from ..trainer_utils import update_target, get_features_from_state, defineScheduler
+from ..dynamic_encoders import Predictive_Encoding_Trainer, CLAPP_Layer
 from utils.utils import save_models, createPCA
 from utils.utils_torch import TorchDeque, CustomAdamDuoEligibility, CustomLrSchedulerLinear, CustomLrSchedulerCosineAnnealing, CustomWarmupCosineAnnealing
 
 def actor_critic_train(opt, envs, modules, variables, epoch):
-    agent, icm, optimizer, icm_optimizer, target_critic, schedulders   = modules
-    feature_dim, action_dim, eligibility_trace, _ , _ , _, _ = variables
+    agent, icm, optimizer, icm_optimizer, target_critic, schedulders, encoder_trainer   = modules
+    feature_dim, action_dim, eligibility_trace, _ , _ , _, _, _ = variables
     state, _ = envs.reset(seed = opt.seed + epoch * opt.seed)
     features = get_features_from_state(opt, state, agent, opt.device)
     memory = TorchDeque(maxlen= opt.nb_stacked_frames, num_features= feature_dim, device= opt.device, dtype= torch.float32)
@@ -26,15 +27,21 @@ def actor_critic_train(opt, envs, modules, variables, epoch):
     length_episode = 0
     tot_loss_critic = 0
     tot_loss_actor = 0
-
+    tot_encoding_loss = 0
     if eligibility_trace:
         optimizer.reset_zw_ztheta()
 
-    while not done:   
+    while not done:
+        if opt.use_encoder_predictive:
+            current_features = memory.get_all_content_as_tensor()
+            encoder_trainer.compute_representation(current_features)
+            tot_encoding_loss += encoder_trainer.compute_prediction_loss(current_features)
+            encoder_trainer.updateEncoder()
+
         action, logprob, dist = agent.get_action_and_log_prob_dist_from_features(memory.get_all_content_as_tensor())
         value = agent.get_value_from_features(memory.get_all_content_as_tensor())
         entropy_dist = dist.entropy()
-            
+
         for _ in range(opt.frame_skip):
             n_state, reward, terminated, truncated, _ = envs.step([action.detach().item()])
             length_episode += 1
@@ -78,19 +85,23 @@ def actor_critic_train(opt, envs, modules, variables, epoch):
     
     for scheduler in schedulders: scheduler.step_forward()
 
-    return feature_dim, action_dim, eligibility_trace, length_episode, total_reward, tot_loss_actor, tot_loss_critic
+    return feature_dim, action_dim, eligibility_trace, length_episode, total_reward, tot_loss_actor, tot_loss_critic, tot_encoding_loss
 
 def actor_critic_metrics(opt, epoch, variables):
-    _, _, _, length_episode, total_reward, tot_loss_actor, tot_loss_critic = variables
-    mlflow.log_metrics( 
-                {
-                    'reward': total_reward,
-                    'loss_actor': tot_loss_actor/length_episode,
-                    'loss_critic':  tot_loss_critic/length_episode,
-                    'length_episode': length_episode
-                },
-                step= epoch
-            )
+    _, _, _, length_episode, total_reward, tot_loss_actor, tot_loss_critic, tot_encoding_loss = variables
+    dict_metrics = {
+        'reward': total_reward,
+        'length_episode': length_episode
+    
+    }
+    if opt.algorithm == 'actor_critic':
+        dict_metrics['loss_actor'] = tot_loss_actor/length_episode
+        dict_metrics['loss_critic'] = tot_loss_critic/length_episode
+    if opt.use_encoder_predictive:
+        dict_metrics['encoding_loss'] = tot_encoding_loss/length_episode
+    mlflow.log_metrics(dict_metrics, step= epoch)
+
+
 def actor_critic_init(opt, feature_dim, action_dim, envs):
     assert opt.num_envs == 1
 
@@ -101,7 +112,7 @@ def actor_critic_init(opt, feature_dim, action_dim, envs):
         print("not using eligibility traces")
         eligibility_traces = False
    
-    return feature_dim, action_dim, eligibility_traces, 0, 0, 0, 0
+    return feature_dim, action_dim, eligibility_traces, 0, 0, 0, 0, 0
 
 
 def advantage_function(reward, value, terminated, truncated, agent, memory, target, target_critic, gamma):
@@ -182,8 +193,8 @@ def actor_critic_log_params(opt):
         })
 
 def actor_critic_modules(opt, variables, encoder, models_dict, envs):
-    feature_dim, action_dim, eligibility_traces, _, _, _, _ = variables
-    agent = AC_Agent(feature_dim, action_dim,None, encoder, opt.normalize_features).to(opt.device)
+    feature_dim, action_dim, eligibility_traces, _, _, _, _, _= variables
+    agent = AC_Agent(feature_dim, action_dim,None, encoder, opt.normalize_features,two_layers= opt.two_layers).to(opt.device)
     actor = agent.actor
     critic = agent.critic
     
@@ -194,21 +205,26 @@ def actor_critic_modules(opt, variables, encoder, models_dict, envs):
             pca_module = createPCA(opt, f'trained_models/encoded_features_{opt.encoder}', envs.env.envs[0], encoder, opt.ICM_latent_dim)
         icm = ICM(action_dim, feature_dim, pca_module, opt.ICM_latent_dim, opt.device).to(opt.device)
         icm_optimizer =  torch.optim.AdamW(icm.parameters(), lr = opt.icm_lr)
-
+    
     target_critic = None
     if opt.target:
         target_critic = CriticModel(feature_dim, None).to(opt.device)
         target_critic.load_state_dict(critic.state_dict())
         models_dict['target'] = target_critic
+    
+    encoder_trainer = None
+    if opt.use_encoder_predictive:
+        clapp_layer = CLAPP_Layer(input_dim= feature_dim, hidden_dim= opt.encoder_latent_dim , pred_dim=feature_dim).to(opt.device).requires_grad_()
+        encoder.add_module('addtional CLAPP layer', clapp_layer)
+        encoder_trainer = Predictive_Encoding_Trainer(opt, nn.MSELoss(), clapp_layer)
 
     if not eligibility_traces:
         optimizer = torch.optim.AdamW(agent.parameters(), lr = opt.lr)
-
     else:
         critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy_coeff_scheduler = createschedulers(opt)
         optimizer = CustomAdamDuoEligibility(actor, critic, opt.device, critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, opt.entropy, entropy_coeff_scheduler, opt.gamma)
         schedulders = [critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy_coeff_scheduler]
-    return agent,icm, optimizer,icm_optimizer, target_critic, schedulders
+    return agent,icm, optimizer,icm_optimizer, target_critic, schedulders, encoder_trainer
 
 
 def createschedulers(opt):

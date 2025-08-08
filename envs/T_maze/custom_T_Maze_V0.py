@@ -15,9 +15,9 @@ import gymnasium as gym
 
 class MyTmaze(MiniWorldEnv, utils.EzPickle):
     
-    def __init__(self, visible_reward = True, add_obstacles = False, add_visual_cue_object = False, intermediate_rewards = False,reward_left = True,
-                 probability_of_left = 0.5,latent_learning = False, add_visual_cue_image = False, left_arm = True, right_arm = True, **kwargs):
-    
+    def __init__(self, reward, visible_reward = True, add_obstacles = False, add_visual_cue_object = False, intermediate_rewards = False,reward_left = True,
+                 probability_of_left = 0.5,latent_learning = False, add_visual_cue_image = False, left_arm = True, right_arm = True, remove_images = False, **kwargs):
+        self.reward = reward
         self.visible_reward = visible_reward    
         self.latent_learning = latent_learning
         self.intermediate_rewards = intermediate_rewards
@@ -28,6 +28,7 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
         self.probability_of_left = probability_of_left
         self.left_arm = left_arm
         self.right_arm = right_arm
+        self.remove_images = remove_images
 
       
         
@@ -103,13 +104,16 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
                 + [-math.pi / 2 , math.pi / 2]
         
         # append images to proper positions with desried direction
-        for i, (pos_, dir_) in enumerate(zip(pos_list, dir_list)):
-            self.entities.append(
-                ImageFrame(
-                    pos=pos_, dir=dir_, width=2.74, tex_name="stl{}".format(i )
-                )
+        if self.remove_images:
+            self.entities.append(ImageFrame(pos = pos_list[-2], dir = dir_list[-2], width=2.74, tex_name="stl{}".format(len(pos_list) -2)))
+        else:
+            for i, (pos_, dir_) in enumerate(zip(pos_list, dir_list)):
+                self.entities.append(
+                    ImageFrame(
+                        pos=pos_, dir=dir_, width=2.74, tex_name="stl{}".format(i )
+                    )
 
-            )
+                )
 
     def reset(self, *, seed = None, options = None):
         obs, info = super().reset(seed=seed, options=options)
@@ -125,22 +129,21 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
 
     def step(self, action):
         obs, reward, termination, truncation, info = super().step(action)
-        
-        '''
-        if self.near(self.box):
-            reward += self._reward()
-            termination = True
+        if self.reward:
+            if self.near(self.box):
+                reward += self._reward()
+                termination = True
 
-        if self.add_visual_cue_object and self.found_key == False and self.near(self.key):
-           self.found_key = True 
-           if self.intermediate_rewards:
-               reward += self._reward()
-           self.entities.remove(self.key)
+            if self.add_visual_cue_object and self.found_key == False and self.near(self.key):
+                self.found_key = True 
+                if self.intermediate_rewards:
+                    reward += self._reward()
+                self.entities.remove(self.key)
 
-        info["goal_pos"] = self.box.pos
-        info['agent_pos'] = (self.agent.pos - [5.26,0  ,0 ])/[10.96,13.7 ,1]
-        info['agent_dir'] = (self.agent.dir % (math.pi * 2))/(math.pi * 2)
-        '''
+            info["goal_pos"] = self.box.pos
+            info['agent_pos'] = self.agent.pos
+            info['agent_dir'] = self.agent.dir
+
         return obs, reward, termination, truncation, info
 
     
@@ -165,7 +168,7 @@ def main():
     args = parser.parse_args()
     view_mode = "top" if args.top_view else "agent"
 
-    env = gym.make(args.env_name, view=view_mode, render_mode="human", visible_reward = False)
+    env = gym.make(args.env_name, view=view_mode, render_mode="human", reward = True, visible_reward = False, remove_images = True)
     miniworld_version = miniworld.__version__
 
     print(f"Miniworld v{miniworld_version}, Env: {args.env_name}")

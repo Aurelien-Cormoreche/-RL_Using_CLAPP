@@ -14,7 +14,7 @@ class Specifications():
         self.width = 2.74
         self.height = 2.74
         self.step = 2
-        self.num_points = 1000
+        self.num_points = 1024
         self.size_features = 1024
         self.size_labels = 1
 
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     device = select_device(args)
     specs = Specifications()
     assert args.greyscale
-    envs = create_envs(args, specs.num_envs)
+    envs = create_envs(args, specs.num_envs, reward= False)
     encoder = load_model(os.path.abspath('trained_models')).to(device).eval().requires_grad_(False)
 
     deviations = torch.tensor(
@@ -45,19 +45,19 @@ if __name__ == '__main__':
         val *= torch.tensor([specs.step, 0, specs.step, math.pi * 2/ specs.num_turns], requires_grad=False, device= device)
         val += deviations
         idx = torch.arange(specs.num_envs, device= device) * specs.num_turns
-        
         for t, agent in enumerate(envs.env.get_attr('agent')):
             teleport_agent(val[t, :-1], val[t, -1], agent)
     
         for j in range(specs.num_turns):
-            obs = envs.step(np.zeros((specs.num_envs)))[0]
+            for _ in range(6):
+                obs = envs.step(np.zeros((specs.num_envs)))[0]
             val[:, -1] +=  math.pi * 2/ 4
-            pos = i * specs.num_envs * specs.num_turns + j * specs.num_turns
+            pos = i * specs.num_envs * specs.num_turns + j * specs.num_envs
             features = encoder(torch.tensor(np.expand_dims(obs, axis = 1), dtype= torch.float32, device= device))
             features_dataset[pos: pos + specs.num_envs] = features
             labels_dataset[pos: pos + specs.num_envs] = idx.unsqueeze(dim= -1)
             idx += 1
-
+    
     features_dataset = features_dataset.cpu()
     labels_dataset = labels_dataset.cpu()
     torch.save(features_dataset,'dataset/T_maze_CLAPP_one_hot/features.pt')

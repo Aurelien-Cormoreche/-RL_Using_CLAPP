@@ -11,3 +11,7 @@ mlruns
 Miniworld
 features_64000.pt
 labels64000.pt
+labels.pt
+features.pt
+model.pt
+*.pt

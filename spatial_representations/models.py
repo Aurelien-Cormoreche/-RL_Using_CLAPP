@@ -15,9 +15,7 @@ class Spatial_Model(nn.Module):
             self.layers.append(nn.GELU())
             prev_dim = dim
         self.layers.pop()
-        print(self.layers)
         self.layers = nn.Sequential(*self.layers)
-
 
     def forward(self, x):
         return self.layers(x)
