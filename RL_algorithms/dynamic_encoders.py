@@ -13,8 +13,12 @@ class Predictive_Encoding_Trainer():
     def compute_prediction_loss(self,real):
         loss = self.loss_function(self.predicted, real)     
         self.tot_loss += loss
-        return loss.detach()
-
+        return loss.detach().item()
+    
+    def compute_representation(self, x):
+        self.predicted = self.model.predict_from_features(x)
+        return self.predicted
+    
     def updateEncoder(self, zero_out_predictions = True):
         self.optimizer.zero_grad()
         self.tot_loss.backward()
