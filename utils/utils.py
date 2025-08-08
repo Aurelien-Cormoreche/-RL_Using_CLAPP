@@ -31,7 +31,7 @@ def parsing():
     parser.add_argument('--log_models',action='store_true', help= 'wether to save the models')
     parser.add_argument('--checkpoint_interval', default= 1000, type= int, help= 'interval at which to save the model weights')
     parser.add_argument('--save_name', default='saved_from_run.pt', type= str, help= 'name of the files where we can save the model')
-    parser.add_argument('--one_layer', default= True, type=bool, help='wether the models are one layer')
+    parser.add_argument('--two_layers',action= 'store_true', help='if true then actor and critic contain an activation layer')
     #hyperparameters for the training
     parser.add_argument('--num_epochs', default= 80000, type= int, help= 'number of epochs for the training')
     parser.add_argument('--gamma', default= 0.995, help= 'gamma for training in the environment')    

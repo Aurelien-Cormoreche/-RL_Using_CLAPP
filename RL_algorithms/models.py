@@ -5,10 +5,10 @@ from torch.nn import Linear, ReLU, GELU, LeakyReLU, Softmax, Tanh, Identity
 from collections import defaultdict
 
 class ActorModel(nn.Module):
-    def __init__(self, num_features, num_actions,one_layer = True,*args, **kwargs):
+    def __init__(self, num_features, num_actions, two_layers = False,*args, **kwargs):
         super().__init__(*args, **kwargs)
         hidden_dim = 512
-        if one_layer:
+        if not two_layers:
             self.layer = nn.Sequential(Linear(num_features, num_actions))
         else:
             self.layer = nn.Sequential(
@@ -29,11 +29,11 @@ class ActorModel(nn.Module):
     
 class CriticModel(nn.Module):
 
-    def __init__(self, num_features, activation = None, one_layer = True, *args, **kwargs):
+    def __init__(self, num_features, activation = None, two_layers = False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         hidden_dim = 512
        
-        if one_layer:
+        if not two_layers:
             self.layer = nn.Sequential(Linear(num_features, 1))
         else:
             self.layer = nn.Sequential(

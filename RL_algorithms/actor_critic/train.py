@@ -183,7 +183,7 @@ def actor_critic_log_params(opt):
 
 def actor_critic_modules(opt, variables, encoder, models_dict, envs):
     feature_dim, action_dim, eligibility_traces, _, _, _, _ = variables
-    agent = AC_Agent(feature_dim, action_dim,None, encoder, opt.normalize_features, opt.one_layer).to(opt.device)
+    agent = AC_Agent(feature_dim, action_dim,None, encoder, opt.normalize_features,two_layers= opt.two_layers).to(opt.device)
     actor = agent.actor
     critic = agent.critic
     

@@ -119,6 +119,10 @@ def reduce_data_for_layers(filename_features, filename_labels, num_samples, meth
         box = n
     return points, box
 
+def plot_different_classes(points, box):
+    m = torch.max(box) + 1
+    for i in torch.arange(m):
+        plot_reduced_dimension(points[(box == i).squeeze()], box[box == i])
 
 def plot_reduced_dimension(points, colors):
     fig = plt.figure(figsize=(10, 8))
@@ -184,11 +188,12 @@ def get_distance_vs_act_distance(reduction, method, model, filename_features, fi
         plt.plot(avg_pdist_per_real)
         plt.show()
     return avg_pdist_per_real
+
 def plot_evolution_of_diffs(absolute,indexi,indexe):
     models = ['2layers1.pt', '2layers2.pt', '2layers3.pt', '2layers10.pt', '2layers30.pt', '2layers80.pt']
     res = []
     for m in models:
-        model = CriticModel(1024)
+        model = CriticModel(1024, False)
         model.load_state_dict(torch.load(f'/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/{m}', map_location='cpu')['critic'])
         r = get_distance_vs_act_distance(False, 'PCA', model, 'dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',800, False)
         diff = r[indexe] - r[indexi]
@@ -229,6 +234,7 @@ def plot_runs():
         #good_ac =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/508181377465869700/6e353a1dca9c42038043434be8c57f30/metrics/length_episode', t)
         #one_hot_ac = compute_moving_average('mlruns/647803037565373307/802c653dc9504059b3004a5ffc76809b/metrics/length_episode', t)
         just_bias = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/360ac29b422d4b239c9a556bf40993e6/metrics/length_episode', t)  
+        random_baseline =  compute_moving_average('mlruns/910444605774049268/8497d5a727224391bd3361e1759a68e6/metrics/length_episode', t)
         try2layers1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/f376f623caad440c855f194ca708a13e/metrics/length_episode', t)  
 
         comp_clapp1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/75ed0c8d234d43fea9e01bf0bf085294/metrics/length_episode', t)  
@@ -245,25 +251,27 @@ def plot_runs():
         #plt.plot(one_hot_ac)
         #plt.plot(good_ac)
         #plt.plot(try2layers1)
-        plt.plot(comp_clapp1)
+        plt.plot(random_baseline)
+        #plt.plot(comp_clapp1)
+        #plt.plot(comp_raw1)
         #plt.plot(random_baseline)
-        plt.plot(comp_raw1)
-        plt.plot(comp_clapp5)
+        #plt.plot(comp_raw5)
+        #plt.plot(comp_clapp5)
         #plt.plot(comp_res1)
         plt.show()
 
 if __name__ == '__main__':
 
-    plot_runs()
+    #plot_runs()
 
  
     #visualize_weights('trained_models/saved_from_run.pt', 'critic')
     #meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', '/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layers1.pt', 'critic')
-    #model = ActorModel(1024,3)
+    #model = ActorModel(1024,3,one_layer= False)
     #model.load_state_dict(torch.load('/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layers80.pt', map_location='cpu')['actor'])
-    #p, c = reduce_data_for_layers('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',20000, 'PCA', 'direction_space', model)
-    #plot_reduced_dimension(p, c)
+    #p, c = reduce_data_for_layers('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',20000, 'PCA', 'space', model)
 
+    #l = get_distance_vs_act_distance(False, 'PCA', model, 'dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',800, False)
     #plot_evolution_of_diffs(False,0, 1)       
     #plot_matrix('trained_models/encoded_features_CLAPP.npy')
  

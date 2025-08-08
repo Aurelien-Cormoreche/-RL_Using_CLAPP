@@ -5,16 +5,16 @@ from .models import ActorModel, CriticModel, Discrete_Maze_Model
 
 class AC_Agent(nn.Module):
 
-    def __init__(self,num_features, num_action, activation, encoder,normalize_features = False, have_critic = True, one_layer = True,*args, **kwargs):
+    def __init__(self,num_features, num_action, activation, encoder,normalize_features = False, have_critic = True, two_layers = False,*args, **kwargs):
         super().__init__(*args, **kwargs)
         
         self.normalize_features = normalize_features
 
         self.encoder = encoder
 
-        self.actor = ActorModel(num_features, num_action, one_layer)
+        self.actor = ActorModel(num_features, num_action, two_layers)
         if have_critic:
-            self.critic = CriticModel(num_features, activation, one_layer)
+            self.critic = CriticModel(num_features, activation, two_layers)
 
         if self.normalize_features:
             self.normalization = nn.LayerNorm(normalized_shape= num_features)
