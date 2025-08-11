@@ -292,7 +292,7 @@ if __name__ == '__main__':
         entry_point='envs.T_maze.custom_T_Maze_V0:MyTmaze'
     )
     
-    envs =gym.make("MyTMaze", render_mode='human')
+    envs =gym.make("MyTMaze", render_mode='human',  visible_reward = False, reward = False, remove_images = True)
     
    
 
@@ -306,15 +306,15 @@ if __name__ == '__main__':
     # Extract features and compute similarity
     features1 = TmazeforMatrix1.extract_features_from_all_positions()
 
-
     matrice1= TmazeforMatrix1.compute_similarity_matrix(features=features1)
     
     '''
     features2 = TmazeforMatrix2.extract_features_from_all_positions()
     matrice2= TmazeforMatrix2.compute_similarity_matrix(features=features2)
     differencematrix, suspicious_indices = difference_matrix(matrice1, matrice2, threshold=1)
-    # Visualize
-    TmazeforMatrix1.visualize_similarity_matrix(similarity_matrix=differencematrix)
-    TmazeforMatrix1.render_suspicious_positions(suspicious_indices=suspicious_indices)
-
     '''
+    # Visualize
+    TmazeforMatrix1.visualize_similarity_matrix(similarity_matrix=matrice1)
+    #TmazeforMatrix1.render_suspicious_positions(suspicious_indices=suspicious_indices)
+
+

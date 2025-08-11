@@ -120,7 +120,7 @@ def create_envs(args, num_envs, reward = True):
     )
     
     envs =gym.make_vec("MyTMaze", num_envs= num_envs,  
-                       max_episode_steps= args.max_episode_steps, render_mode = 'human' if args.render else None, visible_reward = args.visible_reward, reward = reward)
+                       max_episode_steps= args.max_episode_steps, render_mode = 'human' if args.render else None, visible_reward = args.visible_reward, reward = reward, remove_images = args.no_images)
 
     if args.greyscale:
         envs = gym.wrappers.vector.GrayscaleObservation(envs)
