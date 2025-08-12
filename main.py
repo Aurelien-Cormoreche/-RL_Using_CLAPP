@@ -1,6 +1,5 @@
 import os
 
-#from RL_algorithms.actor_critic.train import train_actor_critic
 from RL_algorithms.PPO.train import train_PPO
 from RL_algorithms.trainer import Trainer
 from RL_algorithms.models import Encoder_Model
@@ -11,7 +10,7 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 from torchvision.models import resnet50, ResNet50_Weights
-
+from utils.visualize_policy import visualize_policy
 import numpy as np
 import mlflow
 
@@ -99,6 +98,7 @@ def main(args):
         launch_experiment(args, run_dicts, seeds,args.experiment_name, device, models_dict)
     else:
         envs = create_envs(args, args.num_envs)
+
         train(opt= args, envs= envs,model_path= model_path,device =device, models_dict= models_dict)
     
 if __name__ == '__main__':
