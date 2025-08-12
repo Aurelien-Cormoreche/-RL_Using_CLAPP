@@ -1,10 +1,10 @@
 import torch
-from RL_algorithms.trainer_utils import get_features_from_state
+from RL_algorithms.trainer_utils import get_features_from_state_encoder
 from utils.utils_torch import TorchDeque, InfoNceLoss
 from RL_algorithms.dynamic_encoders import CLAPP_Layer, Encoding_Layer, Predictive_Encoding_Trainer, Contrastive_Encoding_Trainer
 import torch.nn as nn
 import random
-def run_separate_dynamic_encoder(opt, envs, agent, encoder, feature_dim, num_epochs):
+def run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, num_epochs):
 
     encoder_trainer = None
     if opt.encoder_layer == 'predictive':
@@ -21,12 +21,14 @@ def run_separate_dynamic_encoder(opt, envs, agent, encoder, feature_dim, num_epo
     
     for epoch in range(num_epochs):
         state, _ = envs.reset()
-        features = get_features_from_state(opt, state, agent, opt.device)
+        features = get_features_from_state_encoder(opt, state, encoder, opt.device)
         memory = TorchDeque(maxlen= opt.nb_stacked_frames, num_features= 1024, device= opt.device, dtype= torch.float32)
         memory.fill(features)
         
         done = False
         direction = torch.zeros((1), dtype= torch.float32, device= opt.device)
+        length_episode = 0
+        tot_encoding_loss = 0
         if opt.encoder_layer == 'contrastive':
             encoder_trainer.reset_memory()
         while not done:
@@ -45,7 +47,7 @@ def run_separate_dynamic_encoder(opt, envs, agent, encoder, feature_dim, num_epo
             action = random.randint(0, 2)
 
             for _ in range(opt.frame_skip):
-                n_state, _, terminated, truncated, _ = envs.step([action.detach().item()])
+                n_state, _, terminated, truncated, _ = envs.step([action])
                 length_episode += 1
                 if terminated or truncated:
                     break
@@ -53,13 +55,14 @@ def run_separate_dynamic_encoder(opt, envs, agent, encoder, feature_dim, num_epo
             terminated = terminated[0]
             truncated = truncated[0]
         
-            features = get_features_from_state(opt, n_state, agent, opt.device)
+            features = get_features_from_state_encoder(opt, n_state, encoder, opt.device)
             memory.push(features)
             
             done= terminated or truncated 
             
             if opt.render:
                 envs.render()
+        print(tot_encoding_loss/length_episode)
         
         
     

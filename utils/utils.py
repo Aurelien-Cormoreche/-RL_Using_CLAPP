@@ -39,7 +39,7 @@ def parsing():
     parser.add_argument('--frame_skip', default= 1, type= int, help= 'number of frames to skip')
     parser.add_argument('--use_ICM', action= 'store_true', help= 'wether to use intrisic curiosity module or not')
     parser.add_argument('--encoder_layer', default='none', help='which encoder to use')
-    parser.add_argument('--encoder_lr', default= 1e-4, type= float, help= 'learning rate for the models of the ICM')
+    parser.add_argument('--encoder_lr', default= 1e-5, type= float, help= 'learning rate for the models of the ICM')
     parser.add_argument('--encoder_latent_dim', default= 128, type= int, help= 'latent dimension for ICM')
     parser.add_argument('--alpha_intrinsic_reward', default= 1e-1, type= float, help= 'intrisic reward coefficient')
     parser.add_argument('--num_updates_encoder', default= 1, type= int, help= 'number of updates for the ICM models')
