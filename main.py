@@ -11,6 +11,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torchvision.models import resnet50, ResNet50_Weights
 from utils.visualize_policy import visualize_policy
+from RL_algorithms.run_separate_dynamic_encoder import run_separate_dynamic_encoder
 import numpy as np
 import mlflow
 
@@ -57,6 +58,7 @@ def train(opt, envs, model_path, device, models_dict):
     action_dim = envs.single_action_space.n
     feature_dim = feature_dim * opt.nb_stacked_frames
     
+    run_separate_dynamic_encoder(opt, envs, , encoder, feature_dim, opt.num_epochs)
     trainer = Trainer(opt, envs, encoder, feature_dim, action_dim)
     trainer.train()
 

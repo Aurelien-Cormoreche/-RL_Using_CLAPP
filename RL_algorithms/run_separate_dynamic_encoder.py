@@ -3,7 +3,7 @@ from RL_algorithms.trainer_utils import get_features_from_state
 from utils.utils_torch import TorchDeque, InfoNceLoss
 from RL_algorithms.dynamic_encoders import CLAPP_Layer, Encoding_Layer, Predictive_Encoding_Trainer, Contrastive_Encoding_Trainer
 import torch.nn as nn
-
+import random
 def run_separate_dynamic_encoder(opt, envs, agent, encoder, feature_dim, num_epochs):
 
     encoder_trainer = None
@@ -42,7 +42,7 @@ def run_separate_dynamic_encoder(opt, envs, agent, encoder, feature_dim, num_epo
                 if encoder_trainer.cascade_memory.full():
                     tot_encoding_loss += encoder_trainer.compute_loss(current_features)
                     encoder_trainer.updateEncoder()
-            action, _, _ = agent.get_action_and_log_prob_dist_from_features(memory.get_all_content_as_tensor())
+            action = random.randint(0, 2)
 
             for _ in range(opt.frame_skip):
                 n_state, _, terminated, truncated, _ = envs.step([action.detach().item()])
