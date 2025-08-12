@@ -40,6 +40,7 @@ def actor_critic_train(opt, envs, modules, variables, epoch):
             current_features = memory.get_all_content_as_tensor()
             encoder_trainer.compute_representation(current_features)
             tot_encoding_loss += encoder_trainer.compute_loss(current_features)
+
             encoder_trainer.updateEncoder()
         elif opt.encoder_layer == 'contrastive':
             current_features = memory.get_all_content_as_tensor()
@@ -100,7 +101,6 @@ def actor_critic_train(opt, envs, modules, variables, epoch):
             envs.render()
     
     for scheduler in schedulders: scheduler.step_forward()
-
     return feature_dim, action_dim, eligibility_trace, length_episode, total_reward, tot_loss_actor, tot_loss_critic, tot_encoding_loss
 
 def actor_critic_metrics(opt, epoch, variables):

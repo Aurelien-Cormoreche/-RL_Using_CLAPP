@@ -94,10 +94,6 @@ class Encoding_Layer(nn.Module):
         toRotate = toRotate.reshape(toRotate.shape[0], -1, 2)
         rotated = torch.cat((toRotate[..., 0] * torch.cos(angle) -  toRotate[..., 1] * torch.sin(angle),
                                 toRotate[..., 1] * torch.cos(angle) +  toRotate[..., 0] * torch.sin(angle)), dim= -1)
-        
-        print(rotated.shape)
-        
-        print(( representation[...,  self.num_direction_modified_dims :]).shape)
 
         return torch.cat(( representation[...,  self.num_direction_modified_dims :], rotated), dim= -1)
     
