@@ -6,11 +6,13 @@ from utils.utils_torch import CustomLrSchedulerLinear, CustomLrSchedulerCosineAn
 
 def get_features_from_state(opt,n_state, agent, device):
     n_state_t = torch.tensor(n_state, device= device, dtype= torch.float32)
+
     if opt.greyscale:
         n_state_t = torch.unsqueeze(n_state_t, dim= 1)
     else:
         n_state_t = n_state_t.reshape(n_state_t.shape[0], n_state_t.shape[3], n_state_t.shape[1], n_state_t.shape[2])
     features = agent.get_features(n_state_t).flatten()
+    
     return features
     
 

@@ -245,12 +245,13 @@ def plot_runs():
 
         comp_clapp1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/75ed0c8d234d43fea9e01bf0bf085294/metrics/length_episode', t)  
         comp_raw1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/b9403527cce14e4b924ad61afea8ae58/metrics/length_episode', t)  
-        comp_res1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/7f40a57630f74ce3bbad798ea50a5bf2/metrics/length_episode', t)  
+        comp_res1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/e7bec4c9a46548a8bc369493c918863f/metrics/length_episode', t)  
 
         comp_clapp5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/139af87b5c2544a49187a121364e22f1/metrics/length_episode', t)  
         comp_raw5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/496bd3aa35334a428d14d3b6dacd9cdf/metrics/length_episode', t)  
 
         no_images5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/b6801b24e6574f2eb31e8a32c29bdafa/metrics/length_episode', t)  
+        
         #plt.plot(baseline_2)
         #plt.plot(baseline_resnet)
         #plt.plot(ini_target)
@@ -263,9 +264,10 @@ def plot_runs():
         #plt.plot(comp_raw1)
         #plt.plot(random_baseline)
         #plt.plot(comp_raw5)
-        plt.plot(comp_clapp5)
-        #plt.plot(comp_res1)
-        plt.plot(no_images5)
+        #plt.plot(comp_clapp5)
+        #plt.plot(no_images5)
+        plt.plot(comp_res1)
+
         plt.show()
 
 if __name__ == '__main__':

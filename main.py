@@ -26,10 +26,12 @@ def train(opt, envs, model_path, device, models_dict):
         if opt.keep_patches:
             feature_dim = 15 * 1024
     elif opt.encoder.startswith('resnet'):
+        transform = ResNet50_Weights.IMAGENET1K_V2.transforms()
         model_res = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
         model_res.fc = torch.nn.Identity()
         assert not opt.greyscale
         feature_dim = 2048
+        encoder_models.append(transform)
         encoder_models.append(model_res)
     elif opt.encoder.startswith('raw'):
         feature_dim = 60 * 80
