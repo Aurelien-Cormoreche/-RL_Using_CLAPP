@@ -17,7 +17,7 @@ def run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, num_epochs):
         encoder_layer = encoder_layer.to('mps')
         encoder.add_module('additional encoder layer', encoder_layer)
         loss = InfoNceLoss()
-        encoder_trainer = Contrastive_Encoding_Trainer(opt, loss,encoder_layer, [10, 20, 30], feature_dim + 1, 1, 5)
+        encoder_trainer = Contrastive_Encoding_Trainer(opt, loss,encoder_layer, [5, 30, 100], feature_dim + 1, 1, 5)
     
     for epoch in range(num_epochs):
         state, _ = envs.reset()
@@ -29,6 +29,7 @@ def run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, num_epochs):
         direction = torch.zeros((1), dtype= torch.float32, device= opt.device)
         length_episode = 0
         tot_encoding_loss = 0
+        num_updates = 0
         if opt.encoder_layer == 'contrastive':
             encoder_trainer.reset_memory()
         while not done:
@@ -42,10 +43,14 @@ def run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, num_epochs):
                 current_features = torch.cat((current_features, direction), dim= -1).unsqueeze(0)
                 encoder_trainer.cascade_memory.push(current_features)
                 if encoder_trainer.cascade_memory.full():
-                    tot_encoding_loss += encoder_trainer.compute_loss(current_features)
-                    encoder_trainer.updateEncoder()
+                    for _ in range(1):
+                        tot_encoding_loss += encoder_trainer.train_one_step(10, 2)
+                        num_updates += 1
             action = random.randint(0, 2)
-
+            if action == 0:
+                direction = (direction + 1) % 4
+            elif action == 1:
+                direction = (direction - 1) % 4
             for _ in range(opt.frame_skip):
                 n_state, _, terminated, truncated, _ = envs.step([action])
                 length_episode += 1
@@ -62,7 +67,8 @@ def run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, num_epochs):
             
             if opt.render:
                 envs.render()
-        print(tot_encoding_loss/length_episode)
+        if num_updates > 0:
+            print(tot_encoding_loss/num_updates)
         
         
     

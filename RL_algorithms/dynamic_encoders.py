@@ -48,16 +48,27 @@ class Contrastive_Encoding_Trainer(Encoding_Trainer):
         self.num_samples_neg = num_samples_neg
         self.tot_loss = 0
 
-    def compute_loss(self, real):
-        positives = self.model(self.cascade_memory.sample_recent(self.num_samples_pos))
-        negatives = self.model(self.cascade_memory.sample_old(self.num_samples_neg))
-        encoded_real = self.model(real)
-        loss = self.loss_function(encoded_real, positives, negatives)
+    def compute_loss(self, positives, negatives, sample):
+        loss = self.loss_function(sample, positives, negatives)
         self.tot_loss += loss
         return loss.detach().item()
     
     def reset_memory(self):
         self.cascade_memory.reset()
+
+    def train_one_step(self, num_epochs, batch_size):
+        loss = 0
+        for e in range(num_epochs):
+            for b in range(batch_size):
+                positives = self.model(self.cascade_memory.sample_recent(self.num_samples_pos + 1))
+                negatives = self.model(self.cascade_memory.sample_old(self.num_samples_neg))
+                loss_b = self.compute_loss(positives[0].unsqueeze(0), negatives, positives[1])
+                if e == 0 and b == 0:
+                    loss += loss_b
+            self.updateEncoder()
+        return loss
+                
+            
 
 class CLAPP_Layer(nn.Module):
     def __init__(self, input_dim, hidden_dim, pred_dim,*args, **kwargs):
@@ -85,6 +96,8 @@ class Encoding_Layer(nn.Module):
             nn.Linear(feature_dim, output_dim))
         self.num_direction_modified_dims = num_direction_modified_dims
         self.feature_dim = feature_dim
+        nn.init.orthogonal_(self.layer[-1].weight)
+
     
     def forward(self, x):
         features, direction = torch.split(x, [self.feature_dim, 1] , dim= -1)
