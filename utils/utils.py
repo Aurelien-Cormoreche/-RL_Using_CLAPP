@@ -124,6 +124,7 @@ def create_envs(args, num_envs, reward = True):
 
     if args.greyscale:
         envs = gym.wrappers.vector.GrayscaleObservation(envs)
+        
     return envs
     
 def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dict):

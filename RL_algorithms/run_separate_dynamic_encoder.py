@@ -1,4 +1,5 @@
 import torch
+import tqdm
 from RL_algorithms.trainer_utils import get_features_from_state_encoder
 from utils.utils_torch import TorchDeque, InfoNceLoss
 from RL_algorithms.dynamic_encoders import CLAPP_Layer, Encoding_Layer, Predictive_Encoding_Trainer, Contrastive_Encoding_Trainer
@@ -21,6 +22,10 @@ def run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, num_epochs):
     
     for epoch in range(num_epochs):
         state, _ = envs.reset()
+        envs.env.set_attr("agent", envs.env.get_attr("agent"))  # This gets the agents
+        for i, agent in enumerate(envs.env.get_attr("agent")):
+            agent.dir = 0
+
         features = get_features_from_state_encoder(opt, state, encoder, opt.device)
         memory = TorchDeque(maxlen= opt.nb_stacked_frames, num_features= 1024, device= opt.device, dtype= torch.float32)
         memory.fill(features)
@@ -69,6 +74,8 @@ def run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, num_epochs):
                 envs.render()
         if num_updates > 0:
             print(tot_encoding_loss/num_updates)
+        if epoch % 100 == 0:
+            torch.save(encoder_layer, 'trained_models/dynamic_contrastive_encoder.pt')
         
         
     
