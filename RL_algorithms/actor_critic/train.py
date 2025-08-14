@@ -15,14 +15,14 @@ from utils.utils import save_models, createPCA
 from utils.utils_torch import TorchDeque, CustomAdamDuoEligibility, CustomLrSchedulerLinear, CustomLrSchedulerCosineAnnealing, CustomWarmupCosineAnnealing, InfoNceLoss
 
 def actor_critic_train(opt, envs, modules, variables, epoch):
-    agent, icm, optimizer, icm_optimizer, target_critic, schedulders, encoder_trainer, encoder_layer   = modules
+    agent, icm, optimizer, icm_optimizer, target_critic, schedulders, encoder_trainer   = modules
     feature_dim, action_dim, eligibility_trace, _ , _ , _, _, _ = variables
     state, _ = envs.reset(seed = opt.seed + epoch * opt.seed)
     envs.env.set_attr("agent", envs.env.get_attr("agent"))  # This gets the agents
     for i, agent_m in enumerate(envs.env.get_attr("agent")):
         agent_m.dir = 0
     features = get_features_from_state(opt, state, agent, opt.device)
-    
+
     memory = TorchDeque(maxlen= opt.nb_stacked_frames, num_features= feature_dim, device= opt.device, dtype= torch.float32)
     memory.fill(features)
     
@@ -226,10 +226,6 @@ def actor_critic_modules(opt, variables, encoder, models_dict, envs):
         encoder.add_module('additional encoder layer', encoder_layer)
         loss = InfoNceLoss()
         encoder_trainer = Contrastive_Encoding_Trainer(opt, loss,encoder_layer, [10, 20, 30], feature_dim + 1, 1, 5)
-    elif opt.encoder_layer == 'pretrained':
-        encoder_layer = Encoding_Layer(feature_dim,opt.encoder_latent_dim, int(opt.encoder_latent_dim * 0.75))
-        encoder_layer = encoder_layer.to('mps')
-        encoder_layer.load_state_dict(torch.load('trained_models/good_dynamic_contrastive_encoder.pt'))
     if not eligibility_traces:
         optimizer = torch.optim.AdamW(agent.parameters(), lr = opt.lr)
     else:
@@ -237,7 +233,7 @@ def actor_critic_modules(opt, variables, encoder, models_dict, envs):
         optimizer = CustomAdamDuoEligibility(actor, critic, opt.device, critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, opt.entropy, entropy_coeff_scheduler, opt.gamma)
         schedulders = [critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy_coeff_scheduler]
 
-    return agent,icm, optimizer,icm_optimizer, target_critic, schedulders, encoder_trainer, encoder_layer
+    return agent,icm, optimizer,icm_optimizer, target_critic, schedulders, encoder_trainer,
 
 
 def createschedulers(opt):

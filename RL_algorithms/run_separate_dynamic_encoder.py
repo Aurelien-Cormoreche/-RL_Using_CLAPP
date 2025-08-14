@@ -85,7 +85,7 @@ def run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, num_epochs):
             print(f'loss time: {tot_encoding_loss_time/num_updates_time}')
         if num_updates_direction > 0:
             print(f'loss direction: {tot_encoding_loss_direction/ num_updates_direction}')
-        if epoch % 20 == 0:
+        if epoch % 3 == 0:
             torch.save(encoder_layer_direction.state_dict(), 'trained_models/direction_contrastive_encoder.pt')
             torch.save(encoder_layer_time.state_dict(), 'trained_models/time_contrastive_encoder.pt')
         

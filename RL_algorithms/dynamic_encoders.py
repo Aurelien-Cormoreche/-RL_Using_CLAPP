@@ -114,7 +114,7 @@ class Encoding_Layer(nn.Module):
 class Pretrained_Dynamic_Encoder(nn.Module):
     def __init__(self,unique_encoders, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.unique_encoders = unique_encoders
+        self.unique_encoders = nn.ModuleList(unique_encoders)
 
     def forward(self, x):
         outs = [m(x) for m in self.unique_encoders]

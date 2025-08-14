@@ -40,7 +40,7 @@ def parsing():
     parser.add_argument('--frame_skip', default= 1, type= int, help= 'number of frames to skip')
     parser.add_argument('--use_ICM', action= 'store_true', help= 'wether to use intrisic curiosity module or not')
     parser.add_argument('--encoder_layer', default='none', help='which encoder to use')
-    parser.add_argument('--encoder_lr', default= 1e-5, type= float, help= 'learning rate for the models of the ICM')
+    parser.add_argument('--encoder_lr', default= 1e-4, type= float, help= 'learning rate for the models of the ICM')
     parser.add_argument('--encoder_latent_dim', default= 1024, type= int, help= 'latent dimension for ICM')
     parser.add_argument('--encoder_latent_dim_direction', default= 16, type= int, help= 'latent dimension for direction encoder')
     parser.add_argument('--encoder_latent_dim_time', default= 128, type= int, help= 'latent dimension for time encoder')
@@ -59,7 +59,7 @@ def parsing():
     parser.add_argument('--critic_len_w', type=int, default=10, help='warmup length for the critic learning rate scheduler')
 
     parser.add_argument('--schedule_type_actor', default='constant', help='schedule type for the actor learning rate')
-    parser.add_argument('--actor_lr_i', type=float, default=1e-4, help='initial learning rate for the actor')
+    parser.add_argument('--actor_lr_i', type=float, default=9e-5, help='initial learning rate for the actor')
     parser.add_argument('--actor_lr_e', type=float, default=1e-4, help='end learning rate for the actor')
     parser.add_argument('--actor_lr_m', type=float, default=1e-4, help='max actor learning rate (for warmup jobs)')
     parser.add_argument('--actor_len_w', type=int, default=100, help='warmup length for the actor learning rate scheduler')

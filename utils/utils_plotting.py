@@ -321,7 +321,7 @@ if __name__ == '__main__':
     p, c = reduce_data_for_layers('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',600, 'PCA', 'direction', model, direction)
     plot_reduced_dimension(p, c)
     #l = get_distance_vs_act_distance(False, 'PCA', model, 'dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',1600, True, direction)
-    #compute_cosine_similarity_across_class('dataset/T_maze_CLAPP_one_hot/features.pt', 'dataset/T_maze_CLAPP_one_hot/labels.pt', direction, model, 600)
+    compute_cosine_similarity_across_class('dataset/T_maze_CLAPP_one_hot/features.pt', 'dataset/T_maze_CLAPP_one_hot/labels.pt', direction, model, 600)
     #plot_evolution_of_diffs(False,0, 1)       
     #plot_matrix('trained_models/encoded_features_CLAPP.npy')
  
