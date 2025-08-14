@@ -12,7 +12,7 @@ import torch.nn as nn
 from torchvision.models import resnet50, ResNet50_Weights
 from utils.visualize_policy import visualize_policy
 from RL_algorithms.run_separate_dynamic_encoder import run_separate_dynamic_encoder
-from RL_algorithms.dynamic_encoders import Encoding_Layer
+from RL_algorithms.dynamic_encoders import Encoding_Layer, Pretrained_Dynamic_Encoder
 import numpy as np
 import mlflow
 
@@ -42,8 +42,6 @@ def train(opt, envs, model_path, device, models_dict):
             feature_dim *= 3
             start_dim_flatten = -3
         encoder_models.append(torch.nn.Flatten(start_dim_flatten))
-    #if opt.encoder_layer == 'pretrained':
-
     if opt.encoder.endswith('one_hot'):
         one_hot_model = Spatial_Model(feature_dim, [32])
         one_hot_model.load_state_dict(torch.load('spatial_representations/one_hot/model.pt', map_location= device))
@@ -51,6 +49,16 @@ def train(opt, envs, model_path, device, models_dict):
         encoder_models.append(one_hot_model)
         encoder_models.append(nn.Softmax(dim= -1))
         print('using one hot')
+    
+    if opt.encoder_layer == 'pretrained':
+        encoder_time = Encoding_Layer(feature_dim, opt.encoder_latent_dim_time)
+        encoder_direction = Encoding_Layer(feature_dim, opt.encoder_latent_dim_direction)
+        encoder_time.load_state_dict(torch.load('trained_models/time_contrastive_encoder.pt', map_location= 'cpu'))
+        encoder_direction.load_state_dict(torch.load('trained_models/direction_contrastive_encoder.pt', map_location= 'cpu'))
+        pretrained_encoder = Pretrained_Dynamic_Encoder([encoder_time, encoder_direction])
+        feature_dim = opt.encoder_latent_dim_time + opt.encoder_latent_dim_direction
+        encoder_models.append(pretrained_encoder)
+
 
     encoder = Encoder_Model(encoder_models)
     encoder = encoder.to(device).requires_grad_(False)

@@ -54,10 +54,10 @@ def run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, num_epochs):
                 encoder_trainer_time.cascade_memory.push(current_features)
                 encoder_trainer_direction.cascade_memory.push(current_features, direction)
                 if encoder_trainer_time.cascade_memory.full():
-                    tot_encoding_loss_time += encoder_trainer_time.train_one_step(10, 2)
+                    tot_encoding_loss_time += encoder_trainer_time.train_one_step(2, 10)
                     num_updates_time += 1
                 if encoder_trainer_direction.cascade_memory.can_sample(max(2,num_negatives_dir)):
-                    tot_encoding_loss_direction += encoder_trainer_direction.train_one_step(10, 2, direction)
+                    tot_encoding_loss_direction += encoder_trainer_direction.train_one_step(2, 10, direction)
                     num_updates_direction += 1
                    
             action = random.randint(0, 2)
