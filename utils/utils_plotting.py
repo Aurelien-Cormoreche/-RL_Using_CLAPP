@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from RL_algorithms.models import CriticModel, ActorModel
-from dimensionality_reduction import PCA
+from utils.dimensionality_reduction import PCA
+from RL_algorithms.dynamic_encoders import Encoding_Layer
 orientations = [0, 45, 90, 135, 180, 225, 270, 315]
 positions = [[1.37, 0, 0], [1.37, 0, 0], [4.11, 0, 0], [4.11, 0, 0], [6.8500000000000005, 0, 0], 
                  [6.8500000000000005, 0, 0], [9.78, 0, -5.4799999999999995], [9.78, 0, -2.7399999999999993], 
@@ -96,14 +97,17 @@ def count_steps(frameskip_num, file):
     data = load_file(file)
     return np.sum(data)/frameskip_num
 
-def reduce_data_for_layers(filename_features, filename_labels, num_samples, method, delimiter, model):
+def reduce_data_for_layers(filename_features, filename_labels, num_samples, method, delimiter, model, direction):
     data_features = torch.load(filename_features)[:num_samples]
     data_labels = torch.load(filename_labels)[:num_samples]
-    model.layer[-1] = torch.nn.Identity()
+    #model.layer[-1] = torch.nn.Identity()
+    if direction:
+        directions = data_labels % 4
+        data_features = torch.cat((data_features, directions), dim = -1)
     with torch.no_grad():
         encoded_features = model(data_features)
     if method == 'PCA':
-        pca = PCA(512, 3)
+        pca = PCA(128, 3)
         pca.fit(encoded_features)
         points = pca(encoded_features)
     if delimiter == 'direction_space':
@@ -155,13 +159,15 @@ def plot_reduced_dimension(points, colors):
 
     plt.show()
 
-def get_distance_vs_act_distance(reduction, method, model, filename_features, filename_labels, num_samples, plot):
+def get_distance_vs_act_distance(reduction, method, model, filename_features, filename_labels, num_samples, plot, directions):
     if reduction:
-        p, box = reduce_data_for_layers(filename_features, filename_labels, num_samples, method, 'space', model)
+        p, box = reduce_data_for_layers(filename_features, filename_labels, num_samples, method, 'space', model, True)
     else:
         data_features = torch.load(filename_features)[:num_samples]
         data_labels = torch.load(filename_labels)[:num_samples]
-        model.layer[-1] = torch.nn.Identity()
+        if directions:
+            directions = data_labels % 4
+            data_features = torch.cat((data_features, directions), dim = -1)
         with torch.no_grad():
             p = model(data_features)
         box = data_labels//4
@@ -210,6 +216,31 @@ def plot_evolution_of_diffs(absolute,indexi,indexe):
     plt.plot(res)
     plt.show()
 
+def compute_cosine_similarity_across_class(filename_features, filename_labels, directions, model, num_samples):
+    data_features = torch.load(filename_features)[:num_samples]
+    data_labels = torch.load(filename_labels)[:num_samples]
+    if directions:
+        directions = data_labels % 4 
+        data_features = torch.cat((data_features, directions), dim = -1)
+    with torch.no_grad():
+        p = model(data_features)
+    
+    num_classes = 32
+    cos_sim = [[] for _ in range(num_classes)]
+    for i in range(num_classes):
+        for j in range(num_classes):
+            indicesi = data_labels == i
+            indicesj = data_labels == j
+            fsi = p[indicesi.squeeze()]
+            fsj = p[indicesj.squeeze()]
+            cosine_similarities = torch.cosine_similarity(fsi, fsj.unsqueeze(1), dim = -1)
+            cos_sim[i].append(cosine_similarities.mean())
+    
+    plt.matshow(cos_sim)
+    plt.colorbar()
+    plt.show()  
+    
+
 def plot_runs():
 
 
@@ -239,6 +270,7 @@ def plot_runs():
         #ini_no_target = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/c64f82c8acdb4bd8b758891bb190328d/metrics/length_episode', t)
         #good_ac =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/508181377465869700/6e353a1dca9c42038043434be8c57f30/metrics/length_episode', t)
         #one_hot_ac = compute_moving_average('mlruns/647803037565373307/802c653dc9504059b3004a5ffc76809b/metrics/length_episode', t)
+        '''
         just_bias = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/360ac29b422d4b239c9a556bf40993e6/metrics/length_episode', t)  
         random_baseline =  compute_moving_average('mlruns/910444605774049268/8497d5a727224391bd3361e1759a68e6/metrics/length_episode', t)
         try2layers1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/f376f623caad440c855f194ca708a13e/metrics/length_episode', t)  
@@ -251,7 +283,10 @@ def plot_runs():
         comp_raw5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/496bd3aa35334a428d14d3b6dacd9cdf/metrics/length_episode', t)  
 
         no_images5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/b6801b24e6574f2eb31e8a32c29bdafa/metrics/length_episode', t)  
-        
+        '''
+    
+        encoder =  compute_moving_average('mlruns/897777511214907461/f2901b4e83474e11bde38d980ef8cd40/metrics/length_episode', t)
+
         #plt.plot(baseline_2)
         #plt.plot(baseline_resnet)
         #plt.plot(ini_target)
@@ -266,22 +301,27 @@ def plot_runs():
         #plt.plot(comp_raw5)
         #plt.plot(comp_clapp5)
         #plt.plot(no_images5)
-        plt.plot(comp_res1)
+        plt.plot(encoder)
 
         plt.show()
 
 if __name__ == '__main__':
 
-    plot_runs()
+    #plot_runs()
     
     #visualize_weights('trained_models/saved_from_run.pt', 'critic')
     #print(torch.load('/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/saved_from_run.pt', map_location= 'cpu')['critic'].keys())
     #meusureIntensityAtPositions('trained_models/encoded_features_no_images_CLAPP.npy', '/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/saved_from_run.pt', 'actor')
     #model = CriticModel(1024,1,two_layers= True)
     #model.load_state_dict(torch.load('/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layerswide.pt', map_location='cpu')['critic'])
-    #p, c = reduce_data_for_layers('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',20000, 'PCA', 'direction', model)
+    model = Encoding_Layer(1024, 128)
+    model.load_state_dict(torch.load('trained_models/time_contrastive_encoder.pt',map_location='cpu'))
+    direction = False
+
+    #p, c = reduce_data_for_layers('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',600, 'PCA', 'direction', model, direction)
     #plot_reduced_dimension(p, c)
-    #l = get_distance_vs_act_distance(False, 'PCA', model, 'dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',1600, True)
+    #l = get_distance_vs_act_distance(False, 'PCA', model, 'dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',1600, True, direction)
+    compute_cosine_similarity_across_class('dataset/T_maze_CLAPP_one_hot/features.pt', 'dataset/T_maze_CLAPP_one_hot/labels.pt', direction, model, 600)
     #plot_evolution_of_diffs(False,0, 1)       
     #plot_matrix('trained_models/encoded_features_CLAPP.npy')
  

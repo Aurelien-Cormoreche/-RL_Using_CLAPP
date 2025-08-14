@@ -12,6 +12,7 @@ import torch.nn as nn
 from torchvision.models import resnet50, ResNet50_Weights
 from utils.visualize_policy import visualize_policy
 from RL_algorithms.run_separate_dynamic_encoder import run_separate_dynamic_encoder
+from RL_algorithms.dynamic_encoders import Encoding_Layer
 import numpy as np
 import mlflow
 
@@ -41,7 +42,8 @@ def train(opt, envs, model_path, device, models_dict):
             feature_dim *= 3
             start_dim_flatten = -3
         encoder_models.append(torch.nn.Flatten(start_dim_flatten))
-    
+    #if opt.encoder_layer == 'pretrained':
+
     if opt.encoder.endswith('one_hot'):
         one_hot_model = Spatial_Model(feature_dim, [32])
         one_hot_model.load_state_dict(torch.load('spatial_representations/one_hot/model.pt', map_location= device))
@@ -50,17 +52,17 @@ def train(opt, envs, model_path, device, models_dict):
         encoder_models.append(nn.Softmax(dim= -1))
         print('using one hot')
 
-
     encoder = Encoder_Model(encoder_models)
     encoder = encoder.to(device).requires_grad_(False)
     encoder.compile(backend="aot_eager")
 
     action_dim = envs.single_action_space.n
     feature_dim = feature_dim * opt.nb_stacked_frames
-    
-    run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, opt.num_epochs)
-    trainer = Trainer(opt, envs, encoder, feature_dim, action_dim)
-    trainer.train()
+    if opt.task == 'train':
+        trainer = Trainer(opt, envs, encoder, feature_dim, action_dim)
+        trainer.train()
+    else:
+        run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, opt.num_epochs)
 
     envs.close()
  

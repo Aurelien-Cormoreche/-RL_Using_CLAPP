@@ -15,17 +15,20 @@ from utils.utils import save_models, createPCA
 from utils.utils_torch import TorchDeque, CustomAdamDuoEligibility, CustomLrSchedulerLinear, CustomLrSchedulerCosineAnnealing, CustomWarmupCosineAnnealing, InfoNceLoss
 
 def actor_critic_train(opt, envs, modules, variables, epoch):
-    agent, icm, optimizer, icm_optimizer, target_critic, schedulders, encoder_trainer   = modules
+    agent, icm, optimizer, icm_optimizer, target_critic, schedulders, encoder_trainer, encoder_layer   = modules
     feature_dim, action_dim, eligibility_trace, _ , _ , _, _, _ = variables
     state, _ = envs.reset(seed = opt.seed + epoch * opt.seed)
+    envs.env.set_attr("agent", envs.env.get_attr("agent"))  # This gets the agents
+    for i, agent_m in enumerate(envs.env.get_attr("agent")):
+        agent_m.dir = 0
     features = get_features_from_state(opt, state, agent, opt.device)
+    
     memory = TorchDeque(maxlen= opt.nb_stacked_frames, num_features= feature_dim, device= opt.device, dtype= torch.float32)
     memory.fill(features)
-        
+    
     done = False
     direction = torch.zeros((1), dtype= torch.float32, device= opt.device)
-    if opt.encoder_layer == 'contrastive':
-        encoder_trainer.reset_memory()
+
     total_reward = 0
     length_episode = 0
     tot_loss_critic = 0
@@ -36,28 +39,9 @@ def actor_critic_train(opt, envs, modules, variables, epoch):
         optimizer.reset_zw_ztheta()
 
     while not done:
-        if opt.encoder_layer == 'predictive':
-            current_features = memory.get_all_content_as_tensor()
-            encoder_trainer.compute_representation(current_features)
-            tot_encoding_loss += encoder_trainer.compute_loss(current_features)
-
-            encoder_trainer.updateEncoder()
-        elif opt.encoder_layer == 'contrastive':
-            current_features = memory.get_all_content_as_tensor()
-            current_features = torch.cat((current_features, direction), dim= -1).unsqueeze(0)
-            encoder_trainer.cascade_memory.push(current_features)
-            if encoder_trainer.cascade_memory.full():
-                tot_encoding_loss += encoder_trainer.compute_loss(current_features)
-                encoder_trainer.updateEncoder()
-
         action, logprob, dist = agent.get_action_and_log_prob_dist_from_features(memory.get_all_content_as_tensor())
         value = agent.get_value_from_features(memory.get_all_content_as_tensor())
         entropy_dist = dist.entropy()
-        
-        if action == 0:
-            direction = (direction + 1) % 4
-        elif action == 1:
-            direction = (direction - 1) % 4
 
         for _ in range(opt.frame_skip):
             n_state, reward, terminated, truncated, _ = envs.step([action.detach().item()])
@@ -71,6 +55,7 @@ def actor_critic_train(opt, envs, modules, variables, epoch):
             
         old_features = features
         features = get_features_from_state(opt, n_state, agent, opt.device)
+
         memory.push(features)
 
         if opt.use_ICM:
@@ -113,7 +98,7 @@ def actor_critic_metrics(opt, epoch, variables):
     if opt.algorithm == 'actor_critic':
         dict_metrics['loss_actor'] = tot_loss_actor/length_episode
         dict_metrics['loss_critic'] = tot_loss_critic/length_episode
-    if opt.use_encoder_predictive:
+    if opt.encoder == 'predictive':
         dict_metrics['encoding_loss'] = tot_encoding_loss/length_episode
     mlflow.log_metrics(dict_metrics, step= epoch)
 
@@ -229,6 +214,7 @@ def actor_critic_modules(opt, variables, encoder, models_dict, envs):
         models_dict['target'] = target_critic
     
     encoder_trainer = None
+    encoder_layer = None
     if opt.encoder_layer == 'predictive':
         clapp_layer = CLAPP_Layer(input_dim= feature_dim, hidden_dim= opt.encoder_latent_dim , pred_dim=feature_dim).to(opt.device).requires_grad_()
         clapp_layer = clapp_layer.to('mps')
@@ -240,14 +226,18 @@ def actor_critic_modules(opt, variables, encoder, models_dict, envs):
         encoder.add_module('additional encoder layer', encoder_layer)
         loss = InfoNceLoss()
         encoder_trainer = Contrastive_Encoding_Trainer(opt, loss,encoder_layer, [10, 20, 30], feature_dim + 1, 1, 5)
-
+    elif opt.encoder_layer == 'pretrained':
+        encoder_layer = Encoding_Layer(feature_dim,opt.encoder_latent_dim, int(opt.encoder_latent_dim * 0.75))
+        encoder_layer = encoder_layer.to('mps')
+        encoder_layer.load_state_dict(torch.load('trained_models/good_dynamic_contrastive_encoder.pt'))
     if not eligibility_traces:
         optimizer = torch.optim.AdamW(agent.parameters(), lr = opt.lr)
     else:
         critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy_coeff_scheduler = createschedulers(opt)
         optimizer = CustomAdamDuoEligibility(actor, critic, opt.device, critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, opt.entropy, entropy_coeff_scheduler, opt.gamma)
         schedulders = [critic_lr_scheduler, actor_lr_scheduler, theta_lam_scheduler, w_lam_scheduler, entropy_coeff_scheduler]
-    return agent,icm, optimizer,icm_optimizer, target_critic, schedulders, encoder_trainer
+
+    return agent,icm, optimizer,icm_optimizer, target_critic, schedulders, encoder_trainer, encoder_layer
 
 
 def createschedulers(opt):

@@ -24,6 +24,7 @@ def parsing():
     parser.add_argument('--max_episode_steps', default= 1000, help= 'max number of steps per environment')
     parser.add_argument('--no_images', action='store_true', help='wether to have the maze without any images')
     #arguments for the training
+    parser.add_argument('--task', default= 'train', help= 'which task to perform')
     parser.add_argument('--algorithm',default= 'actor_critic', help= 'type of RL algorithm to use')
     parser.add_argument('--encoder', default= "CLAPP", help="decide which encoder to use")
     parser.add_argument('--keep_patches', action= 'store_true', help= 'keep the patches for the encoder')
@@ -40,7 +41,9 @@ def parsing():
     parser.add_argument('--use_ICM', action= 'store_true', help= 'wether to use intrisic curiosity module or not')
     parser.add_argument('--encoder_layer', default='none', help='which encoder to use')
     parser.add_argument('--encoder_lr', default= 1e-5, type= float, help= 'learning rate for the models of the ICM')
-    parser.add_argument('--encoder_latent_dim', default= 128, type= int, help= 'latent dimension for ICM')
+    parser.add_argument('--encoder_latent_dim', default= 1024, type= int, help= 'latent dimension for ICM')
+    parser.add_argument('--encoder_latent_dim_direction', default= 16, type= int, help= 'latent dimension for direction encoder')
+    parser.add_argument('--encoder_latent_dim_time', default= 128, type= int, help= 'latent dimension for time encoder')
     parser.add_argument('--alpha_intrinsic_reward', default= 1e-1, type= float, help= 'intrisic reward coefficient')
     parser.add_argument('--num_updates_encoder', default= 1, type= int, help= 'number of updates for the ICM models')
     parser.add_argument('--PCA', action='store_true', help= 'use PCA for ICM')
@@ -50,7 +53,7 @@ def parsing():
     parser.add_argument('--tau', default= 0.1, type= float, help='by how much we update the taget network')
 
     parser.add_argument('--schedule_type_critic', default='constant', help='schedule type for the critic learning rate')
-    parser.add_argument('--critic_lr_i', type=float, default=9e-5, help='initial learning rate for the critic')
+    parser.add_argument('--critic_lr_i', type=float, default=1e-4, help='initial learning rate for the critic')
     parser.add_argument('--critic_lr_e', type=float, default=9e-5, help='end learning rate for the critic')
     parser.add_argument('--critic_lr_m', type=float, default=9e-5, help='max critic learning rate (for warmup jobs)')
     parser.add_argument('--critic_len_w', type=int, default=10, help='warmup length for the critic learning rate scheduler')

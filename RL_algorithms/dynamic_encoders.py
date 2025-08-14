@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import Linear, ReLU
 from torch.optim.adamw import AdamW
-from utils.utils_torch import Cascade_Memory
+from utils.utils_torch import Cascade_Direction_Memory, CascadeTime_Memory
 
 class Encoding_Trainer():
     def __init__(self, opt, model):
@@ -10,7 +10,6 @@ class Encoding_Trainer():
         self.optimizer = AdamW(self.model.parameters(), opt.encoder_lr)
         self.tot_loss = 0
 
-    
     def compute_representation(self, x):
         self.predicted = self.model.predict_from_features(x)
         return self.predicted
@@ -39,14 +38,19 @@ class Predictive_Encoding_Trainer(Encoding_Trainer):
     
 
 class Contrastive_Encoding_Trainer(Encoding_Trainer):
-    def __init__(self, opt, loss_function, model, buffer_sizes, num_features, num_samples_pos, num_samples_neg):
+    def __init__(self, opt, loss_function, model, buffer_sizes, num_features, num_samples_pos, num_samples_neg, time):
         super().__init__(opt, model)
         self.buffer_sizes = buffer_sizes
         self.loss_function = loss_function
-        self.cascade_memory = Cascade_Memory(buffer_sizes, num_features,  opt.device)
+        self.time = time
+        if self.time:
+            self.cascade_memory = CascadeTime_Memory(buffer_sizes, num_features,  opt.device)
+        else:
+            self.cascade_memory = Cascade_Direction_Memory(buffer_sizes, num_features, opt.device)
         self.num_samples_pos = num_samples_pos
         self.num_samples_neg = num_samples_neg
         self.tot_loss = 0
+
 
     def compute_loss(self, positives, negatives, sample):
         loss = self.loss_function(sample, positives, negatives)
@@ -56,12 +60,12 @@ class Contrastive_Encoding_Trainer(Encoding_Trainer):
     def reset_memory(self):
         self.cascade_memory.reset()
 
-    def train_one_step(self, num_epochs, batch_size):
+    def train_one_step(self, num_epochs, batch_size, direction = None):
         loss = 0
         for e in range(num_epochs):
             for b in range(batch_size):
-                positives = self.model(self.cascade_memory.sample_recent(self.num_samples_pos + 1))
-                negatives = self.model(self.cascade_memory.sample_old(self.num_samples_neg))
+                positives = self.model(self.cascade_memory.sample_posititves(self.num_samples_pos + 1, direction))
+                negatives = self.model(self.cascade_memory.sample_negatives(self.num_samples_neg, direction))
                 loss_b = self.compute_loss(positives[0].unsqueeze(0), negatives, positives[1])
                 if e == 0 and b == 0:
                     loss += loss_b
@@ -69,7 +73,6 @@ class Contrastive_Encoding_Trainer(Encoding_Trainer):
         return loss
                 
             
-
 class CLAPP_Layer(nn.Module):
     def __init__(self, input_dim, hidden_dim, pred_dim,*args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -89,27 +92,33 @@ class CLAPP_Layer(nn.Module):
 
 class Encoding_Layer(nn.Module):
 
-    def __init__(self, feature_dim, output_dim, num_direction_modified_dims,*args, **kwargs):
+    def __init__(self, feature_dim, output_dim, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.layer = nn.Sequential(
+        self.layers = nn.Sequential(
             nn.LayerNorm(feature_dim),
-            nn.Linear(feature_dim, output_dim))
-        self.num_direction_modified_dims = num_direction_modified_dims
+            nn.Linear(feature_dim, output_dim),
+            nn.SiLU(), 
+            )
+
         self.feature_dim = feature_dim
-        nn.init.orthogonal_(self.layer[-1].weight)
+        nn.init.xavier_uniform(self.layers[1].weight, gain = nn.init.calculate_gain('relu'))
+        nn.init.zeros_(self.layers[1].bias)
 
-    
     def forward(self, x):
-        features, direction = torch.split(x, [self.feature_dim, 1] , dim= -1)
-        angle = direction * torch.pi / 8
-        representation = self.layer(features)
-        toRotate = representation[..., : self.num_direction_modified_dims]
-        toRotate = toRotate.reshape(toRotate.shape[0], -1, 2)
-        rotated = torch.cat((toRotate[..., 0] * torch.cos(angle) -  toRotate[..., 1] * torch.sin(angle),
-                                toRotate[..., 1] * torch.cos(angle) +  toRotate[..., 0] * torch.sin(angle)), dim= -1)
 
-        return torch.cat(( representation[...,  self.num_direction_modified_dims :], rotated), dim= -1)
-    
+        out =  self.layers(x)
+        if not torch.isfinite(x).all():
+            print("Non-finite values in input!")
+        return out
+
+class Pretrained_Dynamic_Encoder(nn.Module):
+    def __init__(self,unique_encoders, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.unique_encoders = unique_encoders
+
+    def forward(self, x):
+        outs = [m(x) for m in self.unique_encoders]
+        return torch.cat(outs, dim = -1)
 
 
 
