@@ -18,9 +18,7 @@ class AC_Agent(nn.Module):
 
         if self.normalize_features:
             self.normalization = nn.LayerNorm(normalized_shape= num_features)
-        print(self.encoder)
-        print(self.actor)
-        print(self.critic)
+
     def get_features(self, state, keep_patches = False):
         with torch.no_grad():
             x = self.encoder(state) 

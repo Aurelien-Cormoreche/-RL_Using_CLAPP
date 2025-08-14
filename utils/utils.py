@@ -53,13 +53,13 @@ def parsing():
     parser.add_argument('--tau', default= 0.1, type= float, help='by how much we update the taget network')
 
     parser.add_argument('--schedule_type_critic', default='constant', help='schedule type for the critic learning rate')
-    parser.add_argument('--critic_lr_i', type=float, default=1e-4, help='initial learning rate for the critic')
+    parser.add_argument('--critic_lr_i', type=float, default=5e-5, help='initial learning rate for the critic')
     parser.add_argument('--critic_lr_e', type=float, default=9e-5, help='end learning rate for the critic')
     parser.add_argument('--critic_lr_m', type=float, default=9e-5, help='max critic learning rate (for warmup jobs)')
     parser.add_argument('--critic_len_w', type=int, default=10, help='warmup length for the critic learning rate scheduler')
 
     parser.add_argument('--schedule_type_actor', default='constant', help='schedule type for the actor learning rate')
-    parser.add_argument('--actor_lr_i', type=float, default=9e-5, help='initial learning rate for the actor')
+    parser.add_argument('--actor_lr_i', type=float, default=5e-5, help='initial learning rate for the actor')
     parser.add_argument('--actor_lr_e', type=float, default=1e-4, help='end learning rate for the actor')
     parser.add_argument('--actor_lr_m', type=float, default=1e-4, help='max actor learning rate (for warmup jobs)')
     parser.add_argument('--actor_len_w', type=int, default=100, help='warmup length for the actor learning rate scheduler')

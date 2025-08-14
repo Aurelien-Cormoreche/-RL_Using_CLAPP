@@ -53,8 +53,8 @@ def train(opt, envs, model_path, device, models_dict):
     if opt.encoder_layer == 'pretrained':
         encoder_time = Encoding_Layer(feature_dim, opt.encoder_latent_dim_time)
         encoder_direction = Encoding_Layer(feature_dim, opt.encoder_latent_dim_direction)
-        encoder_time.load_state_dict(torch.load('trained_models/time_contrastive_encoder.pt'))
-        encoder_direction.load_state_dict(torch.load('trained_models/direction_contrastive_encoder.pt'))
+        encoder_time.load_state_dict(torch.load('trained_models/time_contrastive_encoder.pt', map_location= device))
+        encoder_direction.load_state_dict(torch.load('trained_models/direction_contrastive_encoder.pt', map_location= device))
         pretrained_encoder = Pretrained_Dynamic_Encoder([encoder_time, encoder_direction]).to(device)
         feature_dim = opt.encoder_latent_dim_time + opt.encoder_latent_dim_direction
         encoder_models.append(pretrained_encoder)
