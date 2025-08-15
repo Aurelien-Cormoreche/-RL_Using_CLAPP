@@ -273,8 +273,9 @@ def plot_runs():
         '''
         just_bias = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/360ac29b422d4b239c9a556bf40993e6/metrics/length_episode', t)  
         random_baseline =  compute_moving_average('mlruns/910444605774049268/8497d5a727224391bd3361e1759a68e6/metrics/length_episode', t)
+        '''
         try2layers1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/f376f623caad440c855f194ca708a13e/metrics/length_episode', t)  
-
+        '''
         comp_clapp1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/75ed0c8d234d43fea9e01bf0bf085294/metrics/length_episode', t)  
         comp_raw1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/b9403527cce14e4b924ad61afea8ae58/metrics/length_episode', t)  
         comp_res1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/004edc693b7f4a2d929b3ecd6b79fa9e/metrics/length_episode', t)  
@@ -289,7 +290,8 @@ def plot_runs():
 
     
         encoder =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/707236896616541753/18af403984ab4e82afdfdee0eb42202f/metrics/length_episode', t)  
-
+        four_rooms =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/385310356949451556/8ecf5d647fc64edb8e8a98546a11315f/metrics/length_episode', t)  
+        four_rooms_2_layers = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/385310356949451556/0b7f347f44f44be8bbfe5fd6ae7941b3/metrics/length_episode', t)  
         #plt.plot(baseline_2)
         #plt.plot(baseline_resnet)
         #plt.plot(ini_target)
@@ -302,9 +304,12 @@ def plot_runs():
         #plt.plot(comp_raw1)
         #plt.plot(random_baseline)
         #plt.plot(comp_raw5)
-        plt.plot(comp_clapp5)
+        #plt.plot(comp_clapp5)
         #plt.plot(no_images5)
-        plt.plot(encoder)
+        #plt.plot(encoder)
+
+        plt.plot(four_rooms)
+        plt.plot(four_rooms_2_layers)
 
         plt.show()
 

@@ -79,7 +79,8 @@ class FourRoomsMaze(MiniWorldEnv, utils.EzPickle):
         self.connect_rooms(room3, room0, min_x=-5, max_x=-3, max_y=2)
 
         self.box =Box(color="red") 
-        self.box.pos = np.array([-3,0,-3])
+        self.box.pos = np.array([-6,0,-5.3])
+
 
         self.agent.radius = 0.25
         self.place_agent(pos=np.array([3, 0, 5]))
@@ -170,7 +171,6 @@ class FourRoomsMaze(MiniWorldEnv, utils.EzPickle):
        
         return super().move_agent(fwd_dist, fwd_drift)
     def turn_agent(self, turn_angle):
-        turn_angle *= 3 
         return super().turn_agent(turn_angle)
 
     def step(self, action):
