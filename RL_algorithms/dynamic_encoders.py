@@ -46,7 +46,7 @@ class Contrastive_Encoding_Trainer(Encoding_Trainer):
         if self.time:
             self.cascade_memory = CascadeTime_Memory(buffer_sizes, num_features,  opt.device)
         else:
-            self.cascade_memory = Cascade_Direction_Memory(buffer_sizes, num_features, opt.device)
+            self.cascade_memory = Cascade_Direction_Memory(buffer_sizes, num_features, opt.device, opt.epsilon_i)
         self.num_samples_pos = num_samples_pos
         self.num_samples_neg = num_samples_neg
         self.tot_loss = 0
@@ -60,10 +60,13 @@ class Contrastive_Encoding_Trainer(Encoding_Trainer):
     def reset_memory(self):
         self.cascade_memory.reset()
 
-    def train_one_step(self, num_epochs, batch_size, direction = None):
+    def train_one_step(self, num_epochs, batch_size):
+        direction = None
         loss = 0
         for e in range(num_epochs):
             for b in range(batch_size):
+                if not self.time:
+                    direction = torch.randint(high= 8, size= (1,))
                 positives = self.model(self.cascade_memory.sample_posititves(self.num_samples_pos + 1, direction))
                 negatives = self.model(self.cascade_memory.sample_negatives(self.num_samples_neg, direction))
                 loss_b = self.compute_loss(positives[0].unsqueeze(0), negatives, positives[1])

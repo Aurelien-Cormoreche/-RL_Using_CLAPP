@@ -70,7 +70,7 @@ def train(opt, envs, model_path, device, models_dict):
         trainer = Trainer(opt, envs, encoder, feature_dim, action_dim)
         trainer.train()
     else:
-        run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, opt.num_epochs)
+        run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, opt.num_epochs, action_dim)
 
     envs.close()
  

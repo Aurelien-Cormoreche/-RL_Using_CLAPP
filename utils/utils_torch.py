@@ -2,6 +2,7 @@ import math
 import torch
 from torch.optim.lr_scheduler import SequentialLR, CosineAnnealingLR, LinearLR
 import torch.nn as nn
+import random
 
 class InfoNceLoss():
     def __call__(self, real, positive, negatives):
@@ -83,11 +84,11 @@ class CascadeTime_Memory():
         self.old = TorchDeque(self.memory_sizes[2], self.num_features, torch.float32, self.device)
     
 class Cascade_Direction_Memory():
-    def __init__(self, memory_sizes, num_features, device):
+    def __init__(self, memory_sizes, num_features, device, eps):
         self.memory_sizes = memory_sizes
         self.num_features = num_features
         self.device = device
-        
+        self.eps = eps
         self.direction_0 = TorchDeque(memory_sizes, num_features, torch.float32, device)
         self.direction_1 = TorchDeque(memory_sizes, num_features, torch.float32, device)
         self.direction_2 = TorchDeque(memory_sizes, num_features, torch.float32, device)
@@ -104,7 +105,9 @@ class Cascade_Direction_Memory():
             d.reset()
         
     def push(self, data, direction):
-        self.buffers[direction].push(data)
+        
+        if self.buffers[direction].size < self.memory_sizes or random.random() < self.eps:
+            self.buffers[direction].push(data)
 
     def sample_direction(self, direction, num_samples):
         if self.buffers[int(direction)].size < num_samples:

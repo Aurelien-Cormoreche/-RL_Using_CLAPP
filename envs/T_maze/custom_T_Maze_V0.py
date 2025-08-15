@@ -35,7 +35,8 @@ class MyTmaze(MiniWorldEnv, utils.EzPickle):
         if self.add_obstacles:
             self.num_obstacles = 3
        
-        
+
+
         MiniWorldEnv.__init__(self, **kwargs)
         utils.EzPickle.__init__(self, **kwargs)
 

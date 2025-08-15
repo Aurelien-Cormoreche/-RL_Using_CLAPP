@@ -55,13 +55,22 @@ class FourRoomsMaze(MiniWorldEnv, utils.EzPickle):
         self.left_arm = left_arm
         self.right_arm = right_arm
         self.remove_images = remove_images
-        
-        MiniWorldEnv.__init__(self, **kwargs)
+        if self.intermediate_rewards:
+            self.f_box_1_1 = False
+            self.f_box_1_2 = False
+            self.f_box_2_1 = False
+            self.f_box_2_2 = False
+            self.f_box_3_1 = False
+            self.f_box_3_2 = False
+            self.f_box_4_1 = False
+            self.f_box_4_2 = False  
+
+        MiniWorldEnv.__init__(self, domain_rand= False, **kwargs)
         utils.EzPickle.__init__(self, **kwargs)
 
         # Allow only the movement actions
         self.action_space = spaces.Discrete(self.actions.move_forward + 1)
-
+    
     def _gen_world(self):
         # Top-left room
         room0 = self.add_rect_room(min_x=-7, max_x=-1, min_z=1, max_z=7,wall_height=2)
@@ -81,7 +90,30 @@ class FourRoomsMaze(MiniWorldEnv, utils.EzPickle):
         self.box =Box(color="red") 
         self.box.pos = np.array([-6,0,-5.3])
 
+        self.inter1_2 = Box(color='red')
+        self.inter1_2.pos = np.array([4, 0, -1])
 
+        self.inter1_1 = Box(color='red')
+        self.inter1_1.pos = np.array([4, 0, 1])
+
+        self.inter2_2 = Box(color='red')
+        self.inter2_2.pos = np.array([-1, 0, 4])
+
+        self.inter2_1 = Box(color='red')
+        self.inter2_1.pos = np.array([1, 0, 4])
+
+        self.inter3_2 = Box(color='red')
+        self.inter3_2.pos = np.array([-4, 0, -1])
+
+        self.inter3_1 = Box(color='red')
+        self.inter3_1.pos = np.array([-4, 0, 1])
+
+        self.inter4_2 = Box(color='red')
+        self.inter4_2.pos = np.array([-1, 0, -4])
+
+        self.inter4_1 = Box(color='red')
+        self.inter4_1.pos = np.array([1, 0, -4])
+        
         self.agent.radius = 0.25
         self.place_agent(pos=np.array([3, 0, 5]))
 
@@ -175,11 +207,36 @@ class FourRoomsMaze(MiniWorldEnv, utils.EzPickle):
 
     def step(self, action):
         obs, reward, termination, truncation, info = super().step(action)
+        if self.intermediate_rewards:
+            if not self.f_box_1_1 and self.near(self.inter1_1):
+                reward += 0.1
+                self.f_box_1_1 = True
+            if not self.f_box_1_2 and self.near(self.inter1_2):
+                reward += 0.1
+                self.f_box_1_2 = True
+            if not self.f_box_2_1 and self.near(self.inter2_1):
+                reward += 0.1
+                self.f_box_2_1 = True
+            if not self.f_box_2_2 and self.near(self.inter2_2):
+                reward += 0.1
+                self.f_box_2_2 = True
+            if not self.f_box_3_1 and self.near(self.inter3_1):
+                reward += 0.1
+                self.f_box_3_1 = True
+            if not self.f_box_3_2 and self.near(self.inter3_2):
+                reward += 0.1
+                self.f_box_3_2 = True
+            if not self.f_box_4_1 and self.near(self.inter4_1):
+                reward += 0.1
+                self.f_box_4_1 = True
+            if not self.f_box_4_2 and self.near(self.inter4_2):
+                reward += 0.1
+                self.f_box_4_2 = True
 
         if self.near(self.box):
             reward += self._reward()
             termination = True
-
+        print(reward)
         return obs, reward, termination, truncation, info
 if __name__ == "__main__":
     # make sure register the environment before running
@@ -187,7 +244,7 @@ if __name__ == "__main__":
         id='MyMaze-v0',
         entry_point='custom_Four_Maze_V0:FourRoomsMaze',
     )
-    env = gym.make("MyMaze", render_mode='human')
+    env = gym.make("MyMaze", render_mode='human', max_episode_steps= 2000, intermediate_rewards = True)
 
-    manual_control = ManualControl(env, math.inf, True)
+    manual_control = ManualControl(env, math.inf, False)
     manual_control.run()

@@ -23,6 +23,7 @@ def parsing():
     parser.add_argument('--visible_reward', action= 'store_true', help= 'If the reward is a visible red box or not')
     parser.add_argument('--max_episode_steps', default= 1000, type= int, help= 'max number of steps per environment')
     parser.add_argument('--no_images', action='store_true', help='wether to have the maze without any images')
+    parser.add_argument('--intermediate_rewards', action= 'store_true', help = 'wether to have intermediate rewards for exploration')
     #arguments for the training
     parser.add_argument('--task', default= 'train', help= 'which task to perform')
     parser.add_argument('--algorithm',default= 'actor_critic', help= 'type of RL algorithm to use')
@@ -80,8 +81,8 @@ def parsing():
     parser.add_argument('--baseline_i', type=float, default=0.00005, help='initial baseline ')
     parser.add_argument('--baseline_e', type=float, default=0.00005, help='end baseline')
 
-    parser.add_argument('--schedule_type_epsilon', default='linear', help='schedule type for the baseline if we run reinforce with artificial baseline')
-    parser.add_argument('--epsilon_i', type=float, default=1.0, help='initial baseline ')
+    parser.add_argument('--schedule_type_epsilon', default='constant', help='schedule type for the baseline if we run reinforce with artificial baseline')
+    parser.add_argument('--epsilon_i', type=float, default=0.1, help='initial baseline ')
     parser.add_argument('--epsilon_e', type=float, default=0.0, help='end baseline')
 
     parser.add_argument('--alpha', default= 0.1, help= 'alpha for updating the q values')
@@ -122,7 +123,9 @@ def create_envs(args, num_envs, reward = True):
     )
     
     envs =gym.make_vec("MyMaze", num_envs= num_envs,  
-                       max_episode_steps= args.max_episode_steps, render_mode = 'human' if args.render else None, visible_reward = args.visible_reward, reward = reward, remove_images = args.no_images)
+                       max_episode_steps= args.max_episode_steps, render_mode = 'human' if args.render else None,
+                         visible_reward = args.visible_reward, reward = reward, remove_images = args.no_images,
+                         intermediate_rewards = args.intermediate_rewards)
 
     if args.greyscale:
         envs = gym.wrappers.vector.GrayscaleObservation(envs)
