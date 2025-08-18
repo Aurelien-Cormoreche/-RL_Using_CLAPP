@@ -55,15 +55,6 @@ class FourRoomsMaze(MiniWorldEnv, utils.EzPickle):
         self.left_arm = left_arm
         self.right_arm = right_arm
         self.remove_images = remove_images
-        if self.intermediate_rewards:
-            self.f_box_1_1 = False
-            self.f_box_1_2 = False
-            self.f_box_2_1 = False
-            self.f_box_2_2 = False
-            self.f_box_3_1 = False
-            self.f_box_3_2 = False
-            self.f_box_4_1 = False
-            self.f_box_4_2 = False  
 
         MiniWorldEnv.__init__(self, domain_rand= False, **kwargs)
         utils.EzPickle.__init__(self, **kwargs)
@@ -113,6 +104,16 @@ class FourRoomsMaze(MiniWorldEnv, utils.EzPickle):
 
         self.inter4_1 = Box(color='red')
         self.inter4_1.pos = np.array([1, 0, -4])
+
+        if self.intermediate_rewards:
+            self.f_box_1_1 = False
+            self.f_box_1_2 = False
+            self.f_box_2_1 = False
+            self.f_box_2_2 = False
+            self.f_box_3_1 = False
+            self.f_box_3_2 = False
+            self.f_box_4_1 = False
+            self.f_box_4_2 = False  
         
         self.agent.radius = 0.25
         self.place_agent(pos=np.array([3, 0, 5]))
@@ -208,6 +209,7 @@ class FourRoomsMaze(MiniWorldEnv, utils.EzPickle):
     def step(self, action):
         obs, reward, termination, truncation, info = super().step(action)
         if self.intermediate_rewards:
+
             if not self.f_box_1_1 and self.near(self.inter1_1):
                 reward += 0.1
                 self.f_box_1_1 = True
@@ -233,10 +235,10 @@ class FourRoomsMaze(MiniWorldEnv, utils.EzPickle):
                 reward += 0.1
                 self.f_box_4_2 = True
 
-        if self.near(self.box):
+        if self.near(self.box) and not self.intermediate_rewards:
             reward += self._reward()
             termination = True
-        print(reward)
+        
         return obs, reward, termination, truncation, info
 if __name__ == "__main__":
     # make sure register the environment before running

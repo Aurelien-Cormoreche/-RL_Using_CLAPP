@@ -291,7 +291,7 @@ def plot_runs():
         four_rooms =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/385310356949451556/0136915735cb4df2a8700a67a7be71cd/metrics/length_episode', t)  
         four_rooms_2_layers = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/385310356949451556/019b87fe3f4542db96f676b5a80fc04c/metrics/length_episode', t)  
         four_rooms_2_layers_slr = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/385310356949451556/089c15560f61479e8d8d1a8465118d5a/metrics/length_episode', t)  
-
+        four_rooms_encoder = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/707236896616541753/f8f911cd12ce4528b73f54194bfff4fa/metrics/length_episode', t)  
         #plt.plot(baseline_2)
         #plt.plot(baseline_resnet)
         #plt.plot(ini_target)
@@ -309,8 +309,8 @@ def plot_runs():
         #plt.plot(encoder)
 
         plt.plot(four_rooms)
-        plt.plot(four_rooms_2_layers)
-        plt.plot(four_rooms_2_layers_slr)
+        #plt.plot(four_rooms_2_layers)
+        plt.plot(four_rooms_encoder)
 
         plt.show()
 

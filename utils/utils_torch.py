@@ -82,6 +82,9 @@ class CascadeTime_Memory():
         self.recent = TorchDeque(self.memory_sizes[0], self.num_features, torch.float32, self.device)
         self.intermediate =  TorchDeque(self.memory_sizes[1], self.num_features, torch.float32, self.device)
         self.old = TorchDeque(self.memory_sizes[2], self.num_features, torch.float32, self.device)
+
+    def can_sample(self, num_samples):
+        return self.old.size >= num_samples
     
 class Cascade_Direction_Memory():
     def __init__(self, memory_sizes, num_features, device, eps):
