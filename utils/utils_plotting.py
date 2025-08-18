@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from RL_algorithms.models import CriticModel, ActorModel
-from dimensionality_reduction import PCA
+from utils.dimensionality_reduction import PCA
+from RL_algorithms.dynamic_encoders import Encoding_Layer
 orientations = [0, 45, 90, 135, 180, 225, 270, 315]
 positions = [[1.37, 0, 0], [1.37, 0, 0], [4.11, 0, 0], [4.11, 0, 0], [6.8500000000000005, 0, 0], 
                  [6.8500000000000005, 0, 0], [9.78, 0, -5.4799999999999995], [9.78, 0, -2.7399999999999993], 
@@ -48,7 +49,7 @@ def meusureIntensityAtPositions(file_features, file_model, model_name):
     model.load_state_dict(model_weights)
     model.requires_grad_(False)
    
-    cos_sim = model(features)
+    cos_sim = model(features)[: ,1]
     
     value_dict = {
     (pos[0], pos[2], ori): cos_sim[i * len(orientations) + j]
@@ -96,14 +97,17 @@ def count_steps(frameskip_num, file):
     data = load_file(file)
     return np.sum(data)/frameskip_num
 
-def reduce_data_for_layers(filename_features, filename_labels, num_samples, method, delimiter, model):
+def reduce_data_for_layers(filename_features, filename_labels, num_samples, method, delimiter, model, direction):
     data_features = torch.load(filename_features)[:num_samples]
     data_labels = torch.load(filename_labels)[:num_samples]
-    model.layer[-1] = torch.nn.Identity()
+    #model.layer[-1] = torch.nn.Identity()
+    if direction:
+        directions = data_labels % 4
+        data_features = torch.cat((data_features, directions), dim = -1)
     with torch.no_grad():
         encoded_features = model(data_features)
     if method == 'PCA':
-        pca = PCA(512, 3)
+        pca = PCA(128, 3)
         pca.fit(encoded_features)
         points = pca(encoded_features)
     if delimiter == 'direction_space':
@@ -155,13 +159,15 @@ def plot_reduced_dimension(points, colors):
 
     plt.show()
 
-def get_distance_vs_act_distance(reduction, method, model, filename_features, filename_labels, num_samples, plot):
+def get_distance_vs_act_distance(reduction, method, model, filename_features, filename_labels, num_samples, plot, directions):
     if reduction:
-        p, box = reduce_data_for_layers(filename_features, filename_labels, num_samples, method, 'space', model)
+        p, box = reduce_data_for_layers(filename_features, filename_labels, num_samples, method, 'space', model, True)
     else:
         data_features = torch.load(filename_features)[:num_samples]
         data_labels = torch.load(filename_labels)[:num_samples]
-        model.layer[-1] = torch.nn.Identity()
+        if directions:
+            directions = data_labels % 4
+            data_features = torch.cat((data_features, directions), dim = -1)
         with torch.no_grad():
             p = model(data_features)
         box = data_labels//4
@@ -210,6 +216,31 @@ def plot_evolution_of_diffs(absolute,indexi,indexe):
     plt.plot(res)
     plt.show()
 
+def compute_cosine_similarity_across_class(filename_features, filename_labels, directions, model, num_samples):
+    data_features = torch.load(filename_features)[:num_samples]
+    data_labels = torch.load(filename_labels)[:num_samples]
+    if directions:
+        directions = data_labels % 4 
+        data_features = torch.cat((data_features, directions), dim = -1)
+    with torch.no_grad():
+        p = model(data_features)
+    
+    num_classes = 32
+    cos_sim = [[] for _ in range(num_classes)]
+    for i in range(num_classes):
+        for j in range(num_classes):
+            indicesi = data_labels == i
+            indicesj = data_labels == j
+            fsi = p[indicesi.squeeze()]
+            fsj = p[indicesj.squeeze()]
+            cosine_similarities = torch.cosine_similarity(fsi, fsj.unsqueeze(1), dim = -1)
+            cos_sim[i].append(cosine_similarities.mean())
+    
+    plt.matshow(cos_sim)
+    plt.colorbar()
+    plt.show()  
+    
+
 def plot_runs():
 
 
@@ -239,17 +270,28 @@ def plot_runs():
         #ini_no_target = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/910472378570111075/c64f82c8acdb4bd8b758891bb190328d/metrics/length_episode', t)
         #good_ac =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/508181377465869700/6e353a1dca9c42038043434be8c57f30/metrics/length_episode', t)
         #one_hot_ac = compute_moving_average('mlruns/647803037565373307/802c653dc9504059b3004a5ffc76809b/metrics/length_episode', t)
+        '''
         just_bias = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/360ac29b422d4b239c9a556bf40993e6/metrics/length_episode', t)  
         random_baseline =  compute_moving_average('mlruns/910444605774049268/8497d5a727224391bd3361e1759a68e6/metrics/length_episode', t)
+        '''
         try2layers1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/f376f623caad440c855f194ca708a13e/metrics/length_episode', t)  
-
+        '''
         comp_clapp1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/75ed0c8d234d43fea9e01bf0bf085294/metrics/length_episode', t)  
         comp_raw1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/b9403527cce14e4b924ad61afea8ae58/metrics/length_episode', t)  
-        comp_res1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/7f40a57630f74ce3bbad798ea50a5bf2/metrics/length_episode', t)  
-
+        comp_res1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/004edc693b7f4a2d929b3ecd6b79fa9e/metrics/length_episode', t)  
+        '''
         comp_clapp5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/139af87b5c2544a49187a121364e22f1/metrics/length_episode', t)  
+        '''
         comp_raw5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/496bd3aa35334a428d14d3b6dacd9cdf/metrics/length_episode', t)  
 
+        no_images5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/b6801b24e6574f2eb31e8a32c29bdafa/metrics/length_episode', t)  
+        '''
+    
+        encoder =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/707236896616541753/18af403984ab4e82afdfdee0eb42202f/metrics/length_episode', t)  
+        four_rooms =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/385310356949451556/0136915735cb4df2a8700a67a7be71cd/metrics/length_episode', t)  
+        four_rooms_2_layers = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/385310356949451556/019b87fe3f4542db96f676b5a80fc04c/metrics/length_episode', t)  
+        four_rooms_2_layers_slr = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/385310356949451556/089c15560f61479e8d8d1a8465118d5a/metrics/length_episode', t)  
+        four_rooms_encoder = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/707236896616541753/f8f911cd12ce4528b73f54194bfff4fa/metrics/length_episode', t)  
         #plt.plot(baseline_2)
         #plt.plot(baseline_resnet)
         #plt.plot(ini_target)
@@ -261,23 +303,34 @@ def plot_runs():
         #plt.plot(comp_clapp1)
         #plt.plot(comp_raw1)
         #plt.plot(random_baseline)
-        plt.plot(comp_raw5)
-        plt.plot(comp_clapp5)
-        plt.plot(comp_res1)
+        #plt.plot(comp_raw5)
+        #plt.plot(comp_clapp5)
+        #plt.plot(no_images5)
+        #plt.plot(encoder)
+
+        plt.plot(four_rooms)
+        #plt.plot(four_rooms_2_layers)
+        plt.plot(four_rooms_encoder)
+
         plt.show()
 
 if __name__ == '__main__':
 
     plot_runs()
-
- 
+    
     #visualize_weights('trained_models/saved_from_run.pt', 'critic')
-    #meusureIntensityAtPositions('trained_models/encoded_features_CLAPP.npy', '/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layers1.pt', 'critic')
+    #print(torch.load('/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/saved_from_run.pt', map_location= 'cpu')['critic'].keys())
+    #meusureIntensityAtPositions('trained_models/encoded_features_no_images_CLAPP.npy', '/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/saved_from_run.pt', 'actor')
     #model = CriticModel(1024,1,two_layers= True)
-    #model.load_state_dict(torch.load('/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layers80.pt', map_location='cpu')['critic'])
-    #p, c = reduce_data_for_layers('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',20000, 'PCA', 'path', model)
+    #model.load_state_dict(torch.load('/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layerswide.pt', map_location='cpu')['critic'])
+    #model = Encoding_Layer(1024, 16)
+    #model.load_state_dict(torch.load('trained_models/direction_contrastive_encoder.pt',map_location='cpu'))
+    #direction = False
+
+    #p, c = reduce_data_for_layers('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',600, 'PCA', 'direction', model, direction)
     #plot_reduced_dimension(p, c)
-    #l = get_distance_vs_act_distance(False, 'PCA', model, 'dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',800, False)
+    #l = get_distance_vs_act_distance(False, 'PCA', model, 'dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',1600, True, direction)
+    #compute_cosine_similarity_across_class('dataset/T_maze_CLAPP_one_hot/features.pt', 'dataset/T_maze_CLAPP_one_hot/labels.pt', direction, model, 600)
     #plot_evolution_of_diffs(False,0, 1)       
     #plot_matrix('trained_models/encoded_features_CLAPP.npy')
  

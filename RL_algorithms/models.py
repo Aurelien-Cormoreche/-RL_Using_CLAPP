@@ -7,7 +7,7 @@ from collections import defaultdict
 class ActorModel(nn.Module):
     def __init__(self, num_features, num_actions, two_layers = False,*args, **kwargs):
         super().__init__(*args, **kwargs)
-        hidden_dim = 512
+        hidden_dim = 1024
         if not two_layers:
             self.layer = nn.Sequential(Linear(num_features, num_actions))
         else:
@@ -31,7 +31,7 @@ class CriticModel(nn.Module):
 
     def __init__(self, num_features, activation = None, two_layers = False, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        hidden_dim = 512
+        hidden_dim = 1024
        
         if not two_layers:
             self.layer = nn.Sequential(Linear(num_features, 1))

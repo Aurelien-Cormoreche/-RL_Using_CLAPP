@@ -16,14 +16,16 @@ from utils.tmaze_discretizer import TmazeDiscretizer
 def parsing():
     parser = argparse.ArgumentParser()
     #arguments for the environment
-    parser.add_argument('--environment',default='T_maze/custom_T_Maze_V0.py', help= 'name of the environment')
+    parser.add_argument('--environment',default='envs.Rooms_4_maze.custom_Four_Maze_V0:FourRoomsMaze', help= 'path of the environment')
     parser.add_argument('--greyscale', action= 'store_true', help = 'determine if we keep render the state in greyscale')
     parser.add_argument('--render', action= 'store_true', help= 'will render the maze')
     parser.add_argument('--num_envs', type= int ,default= 8, help= 'the number of synchronous environment to spawn')
     parser.add_argument('--visible_reward', action= 'store_true', help= 'If the reward is a visible red box or not')
-    parser.add_argument('--max_episode_steps', default= 1000, help= 'max number of steps per environment')
+    parser.add_argument('--max_episode_steps', default= 1000, type= int, help= 'max number of steps per environment')
     parser.add_argument('--no_images', action='store_true', help='wether to have the maze without any images')
+    parser.add_argument('--intermediate_rewards', action= 'store_true', help = 'wether to have intermediate rewards for exploration')
     #arguments for the training
+    parser.add_argument('--task', default= 'train', help= 'which task to perform')
     parser.add_argument('--algorithm',default= 'actor_critic', help= 'type of RL algorithm to use')
     parser.add_argument('--encoder', default= "CLAPP", help="decide which encoder to use")
     parser.add_argument('--keep_patches', action= 'store_true', help= 'keep the patches for the encoder')
@@ -38,9 +40,11 @@ def parsing():
     parser.add_argument('--nb_stacked_frames', default= 1, type= int, help= 'number of stacked frames given as input')
     parser.add_argument('--frame_skip', default= 1, type= int, help= 'number of frames to skip')
     parser.add_argument('--use_ICM', action= 'store_true', help= 'wether to use intrisic curiosity module or not')
-    parser.add_argument('--use_encoder_predictive', action='store_true', help='wether to use the predictive encoder')
+    parser.add_argument('--encoder_layer', default='none', help='which encoder to use')
     parser.add_argument('--encoder_lr', default= 1e-4, type= float, help= 'learning rate for the models of the ICM')
-    parser.add_argument('--encoder_latent_dim', default= 128, type= int, help= 'latent dimension for ICM')
+    parser.add_argument('--encoder_latent_dim', default= 1024, type= int, help= 'latent dimension for ICM')
+    parser.add_argument('--encoder_latent_dim_direction', default= 16, type= int, help= 'latent dimension for direction encoder')
+    parser.add_argument('--encoder_latent_dim_time', default= 128, type= int, help= 'latent dimension for time encoder')
     parser.add_argument('--alpha_intrinsic_reward', default= 1e-1, type= float, help= 'intrisic reward coefficient')
     parser.add_argument('--num_updates_encoder', default= 1, type= int, help= 'number of updates for the ICM models')
     parser.add_argument('--PCA', action='store_true', help= 'use PCA for ICM')
@@ -50,13 +54,13 @@ def parsing():
     parser.add_argument('--tau', default= 0.1, type= float, help='by how much we update the taget network')
 
     parser.add_argument('--schedule_type_critic', default='constant', help='schedule type for the critic learning rate')
-    parser.add_argument('--critic_lr_i', type=float, default=9e-5, help='initial learning rate for the critic')
+    parser.add_argument('--critic_lr_i', type=float, default=1e-4, help='initial learning rate for the critic')
     parser.add_argument('--critic_lr_e', type=float, default=9e-5, help='end learning rate for the critic')
     parser.add_argument('--critic_lr_m', type=float, default=9e-5, help='max critic learning rate (for warmup jobs)')
     parser.add_argument('--critic_len_w', type=int, default=10, help='warmup length for the critic learning rate scheduler')
 
     parser.add_argument('--schedule_type_actor', default='constant', help='schedule type for the actor learning rate')
-    parser.add_argument('--actor_lr_i', type=float, default=1e-4, help='initial learning rate for the actor')
+    parser.add_argument('--actor_lr_i', type=float, default=9e-5, help='initial learning rate for the actor')
     parser.add_argument('--actor_lr_e', type=float, default=1e-4, help='end learning rate for the actor')
     parser.add_argument('--actor_lr_m', type=float, default=1e-4, help='max actor learning rate (for warmup jobs)')
     parser.add_argument('--actor_len_w', type=int, default=100, help='warmup length for the actor learning rate scheduler')
@@ -77,9 +81,8 @@ def parsing():
     parser.add_argument('--baseline_i', type=float, default=0.00005, help='initial baseline ')
     parser.add_argument('--baseline_e', type=float, default=0.00005, help='end baseline')
 
-
-    parser.add_argument('--schedule_type_epsilon', default='linear', help='schedule type for the baseline if we run reinforce with artificial baseline')
-    parser.add_argument('--epsilon_i', type=float, default=1.0, help='initial baseline ')
+    parser.add_argument('--schedule_type_epsilon', default='constant', help='schedule type for the baseline if we run reinforce with artificial baseline')
+    parser.add_argument('--epsilon_i', type=float, default=0.1, help='initial baseline ')
     parser.add_argument('--epsilon_e', type=float, default=0.0, help='end baseline')
 
     parser.add_argument('--alpha', default= 0.1, help= 'alpha for updating the q values')
@@ -115,15 +118,18 @@ def parsing():
     
 def create_envs(args, num_envs, reward = True):
     gym.envs.register(
-        id='MyTMaze-v0',
-        entry_point='envs.T_maze.custom_T_Maze_V0:MyTmaze'
+        id='MyMaze',
+        entry_point=args.environment
     )
     
-    envs =gym.make_vec("MyTMaze", num_envs= num_envs,  
-                       max_episode_steps= args.max_episode_steps, render_mode = 'human' if args.render else None, visible_reward = args.visible_reward, reward = reward)
+    envs =gym.make_vec("MyMaze", num_envs= num_envs,  
+                       max_episode_steps= args.max_episode_steps, render_mode = 'human' if args.render else None,
+                         visible_reward = args.visible_reward, reward = reward, remove_images = args.no_images,
+                         intermediate_rewards = args.intermediate_rewards)
 
     if args.greyscale:
         envs = gym.wrappers.vector.GrayscaleObservation(envs)
+        
     return envs
     
 def launch_experiment(opt, run_dicts, seeds ,experiment_name, device, models_dict):

@@ -1,12 +1,23 @@
 import math
 import torch
-from torch.optim import Optimizer
-from torch import lerp
 from torch.optim.lr_scheduler import SequentialLR, CosineAnnealingLR, LinearLR
-class TorchDeque:
+import torch.nn as nn
+import random
+
+class InfoNceLoss():
+    def __call__(self, real, positive, negatives):
+        similarities = torch.cosine_similarity(real, torch.cat((positive, negatives), dim= 0)).unsqueeze(0)
+        criterion = nn.CrossEntropyLoss()
+        return criterion(similarities, torch.tensor([0], device= similarities.device))
+
+
+class TorchDeque():
 
     def __init__(self, maxlen, num_features,dtype, device):
         self.maxlen = maxlen
+        self.num_features = num_features
+        self.dtype = dtype
+        self.device = device
         self.memory = torch.empty((maxlen, num_features), dtype= dtype,device= device)  
         self.index = 0
         self.size = 0
@@ -21,8 +32,15 @@ class TorchDeque:
             self.start = (self.start + 1) % self.maxlen
         else:
             self.size += 1
+        old = self.memory[self.index]
         self.memory[self.index] = data  
         self.index = (self.index + 1) % self.maxlen
+        return old
+    
+    def sample(self, num_samples):
+
+        indices = torch.randperm(torch.tensor(min(num_samples, self.size)))[: num_samples]
+        return self.memory[indices]
         
     def get_all_content_as_tensor(self):
         return torch.roll(self.memory, -self.start, dims= 0).flatten()
@@ -30,9 +48,96 @@ class TorchDeque:
     def __sizeof__(self):
         return self.size
     
+    def reset(self):
+        self.memory = torch.empty((self.maxlen, self.num_features), dtype= self.dtype,device= self.device)  
+        self.index = 0
+        self.size = 0
+        self.start = 0      
+ 
+class CascadeTime_Memory():
+    def __init__(self, memory_sizes, num_features, device):
+        self.memory_sizes = memory_sizes
+        self.num_features = num_features
+        self.device = device
+        self.recent = TorchDeque(memory_sizes[0], num_features, torch.float32, device)
+        self.intermediate = TorchDeque(memory_sizes[1], num_features, torch.float32, device)
+        self.old = TorchDeque(memory_sizes[2], num_features, torch.float32, device)
 
+    def push(self, data):
+        x = self.recent.push(data)
+        if x != None:
+            x = self.intermediate.push(x)
+        if x != None:
+            x = self.old.push(x)
+        
+    def sample_posititves(self, num_samples, direction):
+        return self.recent.sample(num_samples)
+    
+    def sample_negatives(self, num_samples, direction):
+        return self.old.sample(num_samples)
+    
+    def full(self):
+        return self.old.size == self.memory_sizes[2]
+    def reset(self):
+        self.recent = TorchDeque(self.memory_sizes[0], self.num_features, torch.float32, self.device)
+        self.intermediate =  TorchDeque(self.memory_sizes[1], self.num_features, torch.float32, self.device)
+        self.old = TorchDeque(self.memory_sizes[2], self.num_features, torch.float32, self.device)
+
+    def can_sample(self, num_samples):
+        return self.old.size >= num_samples
+    
+class Cascade_Direction_Memory():
+    def __init__(self, memory_sizes, num_features, device, eps):
+        self.memory_sizes = memory_sizes
+        self.num_features = num_features
+        self.device = device
+        self.eps = eps
+        self.direction_0 = TorchDeque(memory_sizes, num_features, torch.float32, device)
+        self.direction_1 = TorchDeque(memory_sizes, num_features, torch.float32, device)
+        self.direction_2 = TorchDeque(memory_sizes, num_features, torch.float32, device)
+        self.direction_3 = TorchDeque(memory_sizes, num_features, torch.float32, device)
+        self.direction_4 = TorchDeque(memory_sizes, num_features, torch.float32, device)
+        self.direction_5 = TorchDeque(memory_sizes, num_features, torch.float32, device)
+        self.direction_6 = TorchDeque(memory_sizes, num_features, torch.float32, device)
+        self.direction_7 = TorchDeque(memory_sizes, num_features, torch.float32, device)
+
+        self.buffers = [self.direction_0, self.direction_1, self.direction_2, self.direction_3,
+                        self.direction_4, self.direction_5, self.direction_6, self.direction_7]
+    def reset(self):
+        for d in self.buffers:
+            d.reset()
+        
+    def push(self, data, direction):
+        
+        if self.buffers[direction].size < self.memory_sizes or random.random() < self.eps:
+            self.buffers[direction].push(data)
+
+    def sample_direction(self, direction, num_samples):
+        if self.buffers[int(direction)].size < num_samples:
+            raise Exception('not enough elements in direction')
+        return self.buffers[int(direction)].sample(num_samples) 
+    
+    def sample_posititves(self, num_samples, direction):
+        return self.sample_direction(direction, num_samples)
+    
+    def can_sample(self, num_samples):
+        for b in self.buffers:
+            if b.size < num_samples:
+                return False
+        return True
+        
+    def sample_negatives(self, num_samples, direction):
+        non_negatives_directions = torch.tensor([direction - 1 % 8, direction, direction + 1 % 8], dtype= torch.float32, device= self.device)
+        possible_directions = torch.arange(0, 8, device= self.device, dtype= torch.float32)
+        mask = ~torch.isin(possible_directions, non_negatives_directions)
+        directions_to_sample_from = possible_directions[mask]
+        to_sample = torch.ones((8 - 3)).multinomial(num_samples, replacement= True)
+        toret = torch.empty((num_samples, self.num_features), dtype= torch.float32, device= self.device)
+        for i in to_sample:
+            toret[i] = self.sample_direction(directions_to_sample_from[i], 1)
+        return toret
+        
 class CosineAnnealingWarmupLr(SequentialLR):
-
     def __init__(self, optimizer, warmup_steps, total_steps, start_factor=1e-3, last_epoch=-1, eta_min = 1e-6):
         self.warmup = LinearLR(optimizer, start_factor, 1, warmup_steps)
         self.cosineAnnealing = CosineAnnealingLR(optimizer, T_max= total_steps - warmup_steps, eta_min = eta_min)

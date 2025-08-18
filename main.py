@@ -1,6 +1,5 @@
 import os
 
-#from RL_algorithms.actor_critic.train import train_actor_critic
 from RL_algorithms.PPO.train import train_PPO
 from RL_algorithms.trainer import Trainer
 from RL_algorithms.models import Encoder_Model
@@ -11,7 +10,9 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 from torchvision.models import resnet50, ResNet50_Weights
-
+from utils.visualize_policy import visualize_policy
+from RL_algorithms.run_separate_dynamic_encoder import run_separate_dynamic_encoder
+from RL_algorithms.dynamic_encoders import Encoding_Layer, Pretrained_Dynamic_Encoder
 import numpy as np
 import mlflow
 
@@ -27,10 +28,12 @@ def train(opt, envs, model_path, device, models_dict):
         if opt.keep_patches:
             feature_dim = 15 * 1024
     elif opt.encoder.startswith('resnet'):
+        transform = ResNet50_Weights.IMAGENET1K_V2.transforms()
         model_res = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
         model_res.fc = torch.nn.Identity()
         assert not opt.greyscale
         feature_dim = 2048
+        encoder_models.append(transform)
         encoder_models.append(model_res)
     elif opt.encoder.startswith('raw'):
         feature_dim = 60 * 80
@@ -39,7 +42,6 @@ def train(opt, envs, model_path, device, models_dict):
             feature_dim *= 3
             start_dim_flatten = -3
         encoder_models.append(torch.nn.Flatten(start_dim_flatten))
-    
     if opt.encoder.endswith('one_hot'):
         one_hot_model = Spatial_Model(feature_dim, [32])
         one_hot_model.load_state_dict(torch.load('spatial_representations/one_hot/model.pt', map_location= device))
@@ -47,6 +49,15 @@ def train(opt, envs, model_path, device, models_dict):
         encoder_models.append(one_hot_model)
         encoder_models.append(nn.Softmax(dim= -1))
         print('using one hot')
+    
+    if opt.encoder_layer == 'pretrained':
+        encoder_time = Encoding_Layer(feature_dim, opt.encoder_latent_dim_time)
+        encoder_direction = Encoding_Layer(feature_dim, opt.encoder_latent_dim_direction)
+        encoder_time.load_state_dict(torch.load('trained_models/time_contrastive_encoder.pt', map_location= device))
+        encoder_direction.load_state_dict(torch.load('trained_models/direction_contrastive_encoder.pt', map_location= device))
+        pretrained_encoder = Pretrained_Dynamic_Encoder([encoder_time, encoder_direction]).to(device)
+        feature_dim = opt.encoder_latent_dim_time + opt.encoder_latent_dim_direction
+        encoder_models.append(pretrained_encoder)
 
 
     encoder = Encoder_Model(encoder_models)
@@ -55,9 +66,11 @@ def train(opt, envs, model_path, device, models_dict):
 
     action_dim = envs.single_action_space.n
     feature_dim = feature_dim * opt.nb_stacked_frames
-    
-    trainer = Trainer(opt, envs, encoder, feature_dim, action_dim)
-    trainer.train()
+    if opt.task == 'train':
+        trainer = Trainer(opt, envs, encoder, feature_dim, action_dim)
+        trainer.train()
+    else:
+        run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, opt.num_epochs, action_dim)
 
     envs.close()
  
@@ -99,6 +112,7 @@ def main(args):
         launch_experiment(args, run_dicts, seeds,args.experiment_name, device, models_dict)
     else:
         envs = create_envs(args, args.num_envs)
+
         train(opt= args, envs= envs,model_path= model_path,device =device, models_dict= models_dict)
     
 if __name__ == '__main__':
