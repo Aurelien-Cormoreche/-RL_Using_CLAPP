@@ -56,7 +56,10 @@ def train(opt, envs, model_path, device, models_dict):
         encoder_time.load_state_dict(torch.load(f'trained_models/{opt.encoder_model_time}', map_location= device))
         encoder_direction.load_state_dict(torch.load(f'trained_models/{opt.encoder_model_direction}', map_location= device))
         pretrained_encoder = Pretrained_Dynamic_Encoder([encoder_time, encoder_direction], opt.encoder_output_mode).to(device)
-        feature_dim = opt.encoder_latent_dim_time + opt.encoder_latent_dim_direction
+        if opt.encoder_output_mode == 'replace':
+            feature_dim = opt.encoder_latent_dim_time + opt.encoder_latent_dim_direction
+        else:
+            feature_dim += opt.encoder_latent_dim_time + opt.encoder_latent_dim_direction
         encoder_models.append(pretrained_encoder)
 
 

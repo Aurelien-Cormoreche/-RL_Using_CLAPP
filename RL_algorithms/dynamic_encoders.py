@@ -118,6 +118,7 @@ class Pretrained_Dynamic_Encoder(nn.Module):
     def __init__(self,unique_encoders, output_mode = 'replace', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.unique_encoders = nn.ModuleList(unique_encoders)
+        self.normalization_features = nn.LayerNorm(unique_encoders[0].feature_dim)
         self.output_mode = output_mode
 
     def forward(self, x):
@@ -126,7 +127,7 @@ class Pretrained_Dynamic_Encoder(nn.Module):
         if self.output_mode == 'replace':
             return outs
         if self.output_mode == 'concatenate':
-            return torch.cat(x, outs, dim= -1)
+            return torch.cat((self.normalization_features(x), outs), dim= -1)
     
 
 
