@@ -103,7 +103,6 @@ class Encoding_Layer(nn.Module):
             nn.LeakyReLU(negative_slope= 0.2), 
             nn.LayerNorm(output_dim)
             )
-
         self.feature_dim = feature_dim
         nn.init.xavier_uniform(self.layers[1].weight, gain = nn.init.calculate_gain('leaky_relu', 0.2))
         nn.init.zeros_(self.layers[1].bias)
@@ -116,13 +115,18 @@ class Encoding_Layer(nn.Module):
         return out
 
 class Pretrained_Dynamic_Encoder(nn.Module):
-    def __init__(self,unique_encoders, *args, **kwargs):
+    def __init__(self,unique_encoders, output_mode = 'replace', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.unique_encoders = nn.ModuleList(unique_encoders)
+        self.output_mode = output_mode
 
     def forward(self, x):
         outs = [m(x) for m in self.unique_encoders]
-        return torch.cat(outs, dim = -1)
+        outs = torch.cat(outs, dim = -1)
+        if self.output_mode == 'replace':
+            return outs
+        if self.output_mode == 'concatenate':
+            return torch.cat(x, outs, dim= -1)
     
 
 
