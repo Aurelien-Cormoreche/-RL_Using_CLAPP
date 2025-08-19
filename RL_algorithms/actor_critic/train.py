@@ -39,10 +39,10 @@ def actor_critic_train(opt, envs, modules, variables, epoch):
         optimizer.reset_zw_ztheta()
 
     while not done:
+    
         action, logprob, dist = agent.get_action_and_log_prob_dist_from_features(memory.get_all_content_as_tensor())
         value = agent.get_value_from_features(memory.get_all_content_as_tensor())
         entropy_dist = dist.entropy()
-
         for _ in range(opt.frame_skip):
             n_state, reward, terminated, truncated, _ = envs.step([action.detach().item()])
             length_episode += 1

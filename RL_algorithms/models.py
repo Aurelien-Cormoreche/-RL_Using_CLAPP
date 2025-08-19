@@ -17,6 +17,7 @@ class ActorModel(nn.Module):
                 Linear(hidden_dim, num_actions))
         self.softmax = Softmax(dim= -1)
         
+        nn.init.zeros_(self.layer[-1].weight)
         nn.init.zeros_(self.layer[-1].bias)
         
     def forward(self, x, temp = None):
@@ -24,6 +25,7 @@ class ActorModel(nn.Module):
             x = self.layer(x)/temp
         else:
            x = self.layer(x)
+
         x = self.softmax(x)
         return x
     

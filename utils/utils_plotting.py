@@ -15,6 +15,17 @@ def load_file(filepath):
     data = np.loadtxt(filepath)
     return data[:, 1]
 
+def compute_mv_and_std(filepath,window_size):
+    data = []
+    for f in filepath:
+        data.append(load_file(f))
+    data = np.mean(data, axis= 0)
+    moving_avg = np.convolve(data, np.ones(window_size)/window_size, mode= 'valid')
+    moving_avg_sq = np.convolve(data**2, np.ones(window_size)/(window_size), mode='valid')
+    moving_avg_corrected = np.convolve(data, np.ones(window_size)/(window_size), mode= 'valid')
+    moving_std = np.sqrt((moving_avg_sq - moving_avg_corrected ** 2)/ 1)
+    return moving_avg, moving_std
+
 def compute_moving_average(filepath,window_size, remove_outliers = False, outliers_level = 600):
     data = load_file(filepath)
     if remove_outliers:
@@ -239,8 +250,93 @@ def compute_cosine_similarity_across_class(filename_features, filename_labels, d
     plt.matshow(cos_sim)
     plt.colorbar()
     plt.show()  
-    
 
+def plot_presentation():
+    t = 50
+    random = 690
+    human_level = 35
+    clapp, clapp_ste = compute_mv_and_std(['/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/75ed0c8d234d43fea9e01bf0bf085294/metrics/length_episode',
+                                                   '/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/139af87b5c2544a49187a121364e22f1/metrics/length_episode'], t)  
+    raw, raw_ste = compute_mv_and_std(['/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/b9403527cce14e4b924ad61afea8ae58/metrics/length_episode',
+                                        '/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/496bd3aa35334a428d14d3b6dacd9cdf/metrics/length_episode'], t)         
+
+    plt.style.use("default")  # clean modern style
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    x = np.arange(len(raw))
+
+    # Raw signal
+    ax.plot(x, raw, label="Raw", color="tab:blue", linewidth=1)
+
+
+    # Clapp signal
+    ax.plot(x, clapp, label="Clapp", color="tab:red", linewidth=1)
+
+    ax.plot(x, np.full_like(clapp, human_level), label = 'Human Average Performance', linestyle='dashed', color = 'tab:green')
+    ax.plot(x, np.full_like(clapp, random), label = 'Random Policy Performance', linestyle='dashed', color = 'tab:orange')
+
+    # Beautify
+    ax.set_title("Comparison of Raw vs Clapp moving average of 50 runs (Across 2 seeds)", fontsize=16, pad=15)
+    ax.set_xlabel("Number of runs (moving average 50 runs)", fontsize=14)
+    ax.set_ylabel("Average length Run", fontsize=14)
+    ax.legend(fontsize=12)
+
+
+    plt.tight_layout()
+    plt.show()
+    '''
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    x = np.arange(len(raw_ste))
+
+    # Raw signal
+    ax.plot(x, raw_ste, label="Raw", color="tab:blue", linewidth=1)
+
+    # Clapp signal
+    ax.plot(x, clapp_ste, label="Clapp", color="tab:red", linewidth=1)
+
+
+    # Beautify
+    ax.set_title("Comparison of Raw vs Clapp standart deviation across 50 runs ", fontsize=16, pad=15)
+    ax.set_xlabel("Number of runs", fontsize=14)
+    ax.set_ylabel("Standart deviation", fontsize=14)
+    ax.legend(fontsize=12)
+
+
+    plt.tight_layout()
+    plt.show()  
+    '''
+def plot_presentation_2():
+    t = 300
+    human_level = 35
+    random = 690
+    clapp, clapp_ste = compute_mv_and_std(['/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/75ed0c8d234d43fea9e01bf0bf085294/metrics/length_episode',
+                                                   '/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/139af87b5c2544a49187a121364e22f1/metrics/length_episode'], t)  
+    clapp_better, _ = compute_mv_and_std(['/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/707236896616541753/18af403984ab4e82afdfdee0eb42202f/metrics/length_episode'], t)
+    
+    plt.style.use("default")  # clean modern style
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    x = np.arange(len(clapp_better))
+
+    # Raw signal
+    ax.plot(x, clapp_better, label="Clapp + place cells", color="tab:blue", linewidth=1)
+
+    x = np.arange(len(clapp))
+    # Clapp signal
+    ax.plot(x, clapp, label="Clapp", color="tab:red", linewidth=1)
+
+    ax.plot(x, np.full_like(clapp, human_level), label = 'Human Average Performance', linestyle='dashed', color = 'tab:green')
+    ax.plot(x, np.full_like(clapp, random), label = 'Random Policy Performance', linestyle='dashed', color = 'tab:orange')
+
+    # Beautify
+    ax.set_title("Comparison of Clapp + place cells vs Clapp moving average of 300 runs", fontsize=16, pad=15)
+    ax.set_xlabel("Number of runs (moving average 300 runs)", fontsize=14)
+    ax.set_ylabel("Average length Run", fontsize=14)
+    ax.legend(fontsize=12)
+
+    plt.tight_layout()
+    plt.show()
 def plot_runs():
 
 
@@ -272,18 +368,19 @@ def plot_runs():
         #one_hot_ac = compute_moving_average('mlruns/647803037565373307/802c653dc9504059b3004a5ffc76809b/metrics/length_episode', t)
         '''
         just_bias = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/360ac29b422d4b239c9a556bf40993e6/metrics/length_episode', t)  
-        random_baseline =  compute_moving_average('mlruns/910444605774049268/8497d5a727224391bd3361e1759a68e6/metrics/length_episode', t)
         '''
+        random_baseline =  compute_moving_average('mlruns/244787145723528822/50e0237b13b040efbabff68f7dd77450/metrics/length_episode', t)
+  
         try2layers1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/509629523065386057/f376f623caad440c855f194ca708a13e/metrics/length_episode', t)  
-        '''
+        
         comp_clapp1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/75ed0c8d234d43fea9e01bf0bf085294/metrics/length_episode', t)  
         comp_raw1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/b9403527cce14e4b924ad61afea8ae58/metrics/length_episode', t)  
         comp_res1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/004edc693b7f4a2d929b3ecd6b79fa9e/metrics/length_episode', t)  
-        '''
+      
         comp_clapp5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/139af87b5c2544a49187a121364e22f1/metrics/length_episode', t)  
-        '''
+      
         comp_raw5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/496bd3aa35334a428d14d3b6dacd9cdf/metrics/length_episode', t)  
-
+        '''
         no_images5 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/376693154063831747/b6801b24e6574f2eb31e8a32c29bdafa/metrics/length_episode', t)  
         '''
     
@@ -291,7 +388,12 @@ def plot_runs():
         four_rooms =  compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/385310356949451556/0136915735cb4df2a8700a67a7be71cd/metrics/length_episode', t)  
         four_rooms_2_layers = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/385310356949451556/019b87fe3f4542db96f676b5a80fc04c/metrics/length_episode', t)  
         four_rooms_2_layers_slr = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/385310356949451556/089c15560f61479e8d8d1a8465118d5a/metrics/length_episode', t)  
-        four_rooms_encoder = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/707236896616541753/f8f911cd12ce4528b73f54194bfff4fa/metrics/length_episode', t)  
+        four_rooms_encoder_bad = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/707236896616541753/f8f911cd12ce4528b73f54194bfff4fa/metrics/length_episode', t)  
+        four_rooms_encoder1 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/707236896616541753/31babae9a1544d1d9cc2fda1479f4836/metrics/length_episode', t)  
+        four_rooms_encoder2 = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/707236896616541753/b9001bbde282476081f1af91970bd391/metrics/length_episode', t)  
+        four_rooms_raw = compute_moving_average('/Volumes/lcncluster/cormorec/rl_with_clapp/mlruns/385310356949451556/7e0ff7f3e12d42b193dfbefd30692216/metrics/length_episode', t)  
+
+        
         #plt.plot(baseline_2)
         #plt.plot(baseline_resnet)
         #plt.plot(ini_target)
@@ -300,22 +402,22 @@ def plot_runs():
         #plt.plot(good_ac)
         #plt.plot(try2layers1)
         #plt.plot(random_baseline)
-        #plt.plot(comp_clapp1)
-        #plt.plot(comp_raw1)
+        #plt.plot(np.mean([comp_clapp1, comp_clapp5], axis= 0))
+        #plt.plot(np.mean([comp_raw1, comp_raw5], axis= 0))
         #plt.plot(random_baseline)
-        #plt.plot(comp_raw5)
-        #plt.plot(comp_clapp5)
         #plt.plot(no_images5)
         #plt.plot(encoder)
 
         plt.plot(four_rooms)
+        #plt.plot(four_rooms_raw)
         #plt.plot(four_rooms_2_layers)
-        plt.plot(four_rooms_encoder)
+        #plt.plot(four_rooms_encoder1)
+        plt.plot(four_rooms_encoder2)
 
         plt.show()
 
 if __name__ == '__main__':
-
+    #plot_presentation_2()
     plot_runs()
     
     #visualize_weights('trained_models/saved_from_run.pt', 'critic')
@@ -323,8 +425,8 @@ if __name__ == '__main__':
     #meusureIntensityAtPositions('trained_models/encoded_features_no_images_CLAPP.npy', '/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/saved_from_run.pt', 'actor')
     #model = CriticModel(1024,1,two_layers= True)
     #model.load_state_dict(torch.load('/Volumes/lcncluster/cormorec/rl_with_clapp/trained_models/2layerswide.pt', map_location='cpu')['critic'])
-    #model = Encoding_Layer(1024, 16)
-    #model.load_state_dict(torch.load('trained_models/direction_contrastive_encoder.pt',map_location='cpu'))
+    #model = Encoding_Layer(1024, 128)
+    #model.load_state_dict(torch.load('trained_models/time_contrastive_encoder.pt',map_location='cpu'))
     #direction = False
 
     #p, c = reduce_data_for_layers('dataset/T_maze_CLAPP_one_hot/features.pt','dataset/T_maze_CLAPP_one_hot/labels.pt',600, 'PCA', 'direction', model, direction)

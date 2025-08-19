@@ -101,6 +101,7 @@ class Encoding_Layer(nn.Module):
             nn.LayerNorm(feature_dim),
             nn.Linear(feature_dim, output_dim),
             nn.LeakyReLU(negative_slope= 0.2), 
+            nn.LayerNorm(output_dim)
             )
 
         self.feature_dim = feature_dim

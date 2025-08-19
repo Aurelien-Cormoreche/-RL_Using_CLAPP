@@ -22,7 +22,7 @@ def run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, num_epochs, ac
         encoder_layer_time = encoder_layer_time.to(opt.device)
         loss_time = InfoNceLoss()
         num_negatives_time = 5
-        encoder_trainer_time = Contrastive_Encoding_Trainer(opt, loss_time,encoder_layer_time, [5, 30, 2000], feature_dim, 1, num_negatives_time, True)
+        encoder_trainer_time = Contrastive_Encoding_Trainer(opt, loss_time,encoder_layer_time, [20, 100, 1000], feature_dim, 1, num_negatives_time, True)
 
         encoder_layer_direction = Encoding_Layer(feature_dim, opt.encoder_latent_dim_direction)
         encoder_layer_direction = encoder_layer_direction.to(opt.device)
@@ -49,7 +49,7 @@ def run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, num_epochs, ac
         optimizer.reset_zw_ztheta()
         tot_reward = 0
         while not done:
-            if epoch > 60:
+            if epoch > 10:
                 if opt.encoder_layer == 'contrastive':
                     current_features = memory.get_all_content_as_tensor()
                     encoder_trainer_time.cascade_memory.push(current_features)
@@ -95,7 +95,7 @@ def run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, num_epochs, ac
             print(f'loss time: {tot_encoding_loss_time/num_updates_time}')
         if num_updates_direction > 0:
             print(f'loss direction: {tot_encoding_loss_direction/ num_updates_direction}')
-        if epoch % 3 == 0:
+        if epoch % 1 == 0:
             torch.save(encoder_layer_direction.state_dict(), 'trained_models/direction_contrastive_encoder.pt')
             torch.save(encoder_layer_time.state_dict(), 'trained_models/time_contrastive_encoder.pt')
         
