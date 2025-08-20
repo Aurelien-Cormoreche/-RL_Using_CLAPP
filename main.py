@@ -9,7 +9,7 @@ from spatial_representations.models import Spatial_Model
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-from torchvision.models import resnet50, ResNet50_Weights
+from torchvision.models import resnet50, ResNet50_Weights, VGG16_Weights, vgg16
 from utils.visualize_policy import visualize_policy
 from RL_algorithms.run_separate_dynamic_encoder import run_separate_dynamic_encoder
 from RL_algorithms.dynamic_encoders import Encoding_Layer, Pretrained_Dynamic_Encoder
@@ -42,6 +42,7 @@ def train(opt, envs, model_path, device, models_dict):
             feature_dim *= 3
             start_dim_flatten = -3
         encoder_models.append(torch.nn.Flatten(start_dim_flatten))
+
     if opt.encoder.endswith('one_hot'):
         one_hot_model = Spatial_Model(feature_dim, [32])
         one_hot_model.load_state_dict(torch.load('spatial_representations/one_hot/model.pt', map_location= device))
