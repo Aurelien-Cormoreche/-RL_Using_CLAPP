@@ -14,7 +14,7 @@ class Specifications():
         self.width = 2.74
         self.height = 2.74
         self.step = 2
-        self.num_points = 1024
+        self.num_points = 128
         self.size_features = 1024
         self.size_labels = 1
 
@@ -26,16 +26,29 @@ def teleport_agent(pos, dir, agent):
 if __name__ == '__main__':
 
     args = parsing()
+    if args.environment == 'envs.Rooms_4_maze.custom_Four_Maze_V0:FourRoomsMaze':
+        fourrooms = True
     device = select_device(args)
     specs = Specifications()
+    if fourrooms:
+        specs.width = 2
+        specs.step = 1.5
+        specs.num_envs = 36
     assert args.greyscale
     envs = create_envs(args, specs.num_envs, reward= False)
     encoder = load_model(os.path.abspath('trained_models')).to(device).eval().requires_grad_(False)
-
-    deviations = torch.tensor(
-        [[specs.width * x + 0.15, 0, -1, -math.pi / specs.num_turns] for x in range(3)]  \
-        + [[8.37, 0, z * specs.height - 6.48,  -math.pi / specs.num_turns ] for z in range(5)],
-    requires_grad= False, device= device)
+    if fourrooms:
+        deviations = torch.tensor(
+            [[(specs.width * x  + 1.30), 0, (specs.width * y + 1.30), -math.pi / specs.num_turns] for x in range(3) for y in range(3)] \
+            + [[(specs.width * x  + 1.30), 0, - (specs.width * y + 2.80), -math.pi / specs.num_turns] for x in range(3) for y in range(3)] \
+            + [[- (specs.width * x  + 2.80), 0,(specs.width * y + 1.30), -math.pi / specs.num_turns] for x in range(3) for y in range(3)] \
+            + [[-(specs.width * x  + 2.80), 0, -(specs.width * y + 2.80), -math.pi / specs.num_turns] for x in range(3) for y in range(3)] 
+        ,requires_grad= False, device= device)
+    else:
+        deviations = torch.tensor(
+            [[specs.width * x + 0.15, 0, -1, -math.pi / specs.num_turns] for x in range(3)]  \
+            + [[8.37, 0, z * specs.height - 6.48,  -math.pi / specs.num_turns ] for z in range(5)],
+        requires_grad= False, device= device)
     
     envs.reset()
     features_dataset = torch.empty((specs.num_points * specs.num_turns * specs.num_envs, specs.size_features), dtype= torch.float32, device= device)
@@ -57,11 +70,16 @@ if __name__ == '__main__':
             features_dataset[pos: pos + specs.num_envs] = features
             labels_dataset[pos: pos + specs.num_envs] = idx.unsqueeze(dim= -1)
             idx += 1
+
     
     features_dataset = features_dataset.cpu()
     labels_dataset = labels_dataset.cpu()
-    torch.save(features_dataset,'dataset/T_maze_CLAPP_one_hot/features.pt')
-    torch.save(labels_dataset,'dataset/T_maze_CLAPP_one_hot/labels.pt')
+    if fourrooms:
+        torch.save(features_dataset,'dataset/Four_Rooms_CLAPP_one_hot/features.pt')
+        torch.save(labels_dataset,'dataset/Four_Rooms_CLAPP_one_hot/labels.pt')
+    else: 
+        torch.save(features_dataset,'dataset/T_maze_CLAPP_one_hot/features.pt')
+        torch.save(labels_dataset,'dataset/T_maze_CLAPP_one_hot/labels.pt')      
           
             
         

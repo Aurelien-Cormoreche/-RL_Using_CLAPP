@@ -116,7 +116,8 @@ class FourRoomsMaze(MiniWorldEnv, utils.EzPickle):
             self.f_box_4_2 = False  
         
         self.agent.radius = 0.25
-        self.place_agent(pos=np.array([3, 0, 5]))
+        self.pos = np.array([np.random.uniform(high = 6.5,low =1.5), 0, np.random.uniform(high = 6.5,low = 1.5)])
+        self.place_agent(pos=self.pos)
 
         self.pos_list = [
             [-7, 1, 7 - 1.05],

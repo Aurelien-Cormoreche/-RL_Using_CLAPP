@@ -49,7 +49,7 @@ def run_separate_dynamic_encoder(opt, envs, encoder, feature_dim, num_epochs, ac
         optimizer.reset_zw_ztheta()
         tot_reward = 0
         while not done:
-            if epoch > 10:
+            if epoch > 60:
                 if opt.encoder_layer == 'contrastive':
                     current_features = memory.get_all_content_as_tensor()
                     encoder_trainer_time.cascade_memory.push(current_features)
