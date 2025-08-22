@@ -18,14 +18,10 @@ def actor_critic_train(opt, envs, modules, variables, epoch):
     agent, icm, optimizer, icm_optimizer, target_critic, schedulders, encoder_trainer   = modules
     feature_dim, action_dim, eligibility_trace, _ , _ , _, _, _ = variables
     state, _ = envs.reset(seed = opt.seed + epoch * opt.seed)
-    envs.env.set_attr("agent", envs.env.get_attr("agent"))  # This gets the agents
-    for i, agent_m in enumerate(envs.env.get_attr("agent")):
-        agent_m.dir = 0
     features = get_features_from_state(opt, state, agent, opt.device)
 
     memory = TorchDeque(maxlen= opt.nb_stacked_frames, num_features= feature_dim, device= opt.device, dtype= torch.float32)
     memory.fill(features)
-    
     done = False
     direction = torch.zeros((1), dtype= torch.float32, device= opt.device)
 
