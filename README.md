@@ -19,6 +19,7 @@ This repository corresponds to the code used to do spatial navigation from visua
     - [ ] No encoder (flattened raw pixels)
   - Available environments
     - [ ] T-maze (Minworld) an adaptiation of the T-Maze environment from miniworld with images from the test set of stl10 dataset on the walls 
+    ![T maze GIF](envs/illustrations/Registrazione2025-08-18133352-ezgif.com-optimize.gif)
     - [ ] 4 rooms maze (Minworld) an adaptiation of the 4 rooms environment from miniworld with images from the test set of stl10 dataset on the walls 
     ![4 rooms GIF](envs/illustrations/Registrazione2025-08-18141024-ezgif.com-optimize.gif)
     - [ ] maze (Minworld) an adaptiation of the Maze environment from miniworld with images from the test set of stl10 dataset on the walls 
