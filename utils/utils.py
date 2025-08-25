@@ -34,7 +34,8 @@ def parsing():
                         help='Whether to have the maze without any images.')
     parser.add_argument('--intermediate_rewards', action='store_true',
                         help='Whether to have intermediate rewards for exploration.')
-
+    parser.add_argument('--no_reward', action='store_true',
+                        help='Whether there should be rewards in the environment')
     # Arguments for the training configuration.
     parser.add_argument('--task', default='train',
                         help='Which task to perform (e.g., train, evaluate).')

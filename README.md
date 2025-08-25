@@ -63,12 +63,12 @@ The following section presents the main results obtained and the command the run
 
 CLAPP with seed 1:
 ```bash
-python3 main.py --environment envs.T_maze.custom_T_Maze_V0:MyTmaze --max_episode_step 1000 --num_envs 1 --frame_skip 3 --algorithm actor_critic_e --greyscale --encoder CLAPP --actor_lr_i 9e-5 --critic_lr_i 1e-4 --track_run --seed 1
+python3 main.py --environment envs.T_maze.custom_T_Maze_V0:MyTmaze --max_episode_step 1000 --num_envs 1 --frame_skip 3 --algorithm actor_critic_e --greyscale --normalize_features --encoder CLAPP --actor_lr_i 9e-5 --critic_lr_i 1e-4 --track_run --seed 1
 ```
 
 Raw with seed 1:
 ```bash
-python3 main.py --environment envs.T_maze.custom_T_Maze_V0:MyTmaze --max_episode_step 1000 --num_envs 1 --frame_skip 3 --algorithm actor_critic_e --greyscale --encoder raw --actor_lr_i 1e-5 --critic_lr_i 2e-5 --track_run --seed 1
+python3 main.py --environment envs.T_maze.custom_T_Maze_V0:MyTmaze --max_episode_step 1000 --num_envs 1 --frame_skip 3 --algorithm actor_critic_e --greyscale --normalize_features --encoder raw --actor_lr_i 1e-5 --critic_lr_i 2e-5 --track_run --seed 1
 ```
 
 ### Navigation in 4 rooms
@@ -80,12 +80,12 @@ python3 main.py --environment envs.T_maze.custom_T_Maze_V0:MyTmaze --max_episode
 
 CLAPP with seed 1:
 ```bash
-python3 main.py --max_episode_step 1500 --num_envs 1 --frame_skip 3 --algorithm actor_critic_e --greyscale --encoder CLAPP --actor_lr_i 9e-5 --critic_lr_i 1e-4 --track_run --seed 1
+python3 main.py --max_episode_step 1500 --num_envs 1 --frame_skip 3 --algorithm actor_critic_e --greyscale --normalize_features --encoder CLAPP --actor_lr_i 9e-5 --critic_lr_i 1e-4 --track_run --seed 1
 ```
 
 Raw with seed 1:
 ```bash
-python3 main.py --max_episode_step 1500 --num_envs 1 --frame_skip 3 --algorithm actor_critic_e --greyscale --encoder raw --actor_lr_i 1e-5 --critic_lr_i 2e-5 --track_run --seed 1
+python3 main.py --max_episode_step 1500 --num_envs 1 --frame_skip 3 --algorithm actor_critic_e --greyscale --normalize_features --encoder raw --actor_lr_i 1e-5 --critic_lr_i 2e-5 --track_run --seed 1
 ```
 
 #### Comparison CLAPP vs CLAPP with extra decorrelation layer
@@ -97,4 +97,15 @@ python3 main.py --max_episode_step 1500 --num_envs 1 --frame_skip 3 --algorithm 
 CLAPP with decorrelation (seed 1):
 ```bash
 python3 main.py  --max_episode_steps 1500 --num_envs 1 --frame_skip 3 --encoder_layer pretrained --greyscale --algorithm actor_critic_e  --encoder_model_time time_contrastive_encoder_4rooms_good.pt --encoder_output_mode concatenate --track_run --seed 1
+```
+### Decorrelation
+We have added the possibility to have a new layer after the encoder such that this new layer is trained to decorrelate the representations that are far away.
+
+Here is an example of a result we can get where indices in the matrix correspond to a discretization of the T-maze.
+
+![decorrelation results](results/cosine_comp.png)
+
+the outputs are non deterministic but to reach similar results here is the command to run:
+```bash
+python3 main.py --task run_dynamic_encoder --environment envs.T_maze.custom_T_Maze_V0:MyTmaze --num_envs 1 --frame_skip 3 --encoder_layer contrastive --greyscale --max_episode_steps 1000 --normalize_features --no_reward
 ```
