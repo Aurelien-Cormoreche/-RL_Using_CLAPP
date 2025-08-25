@@ -1,6 +1,4 @@
 import os
-
-from RL_algorithms.PPO.train import train_PPO
 from RL_algorithms.trainer import Trainer
 from RL_algorithms.models import Encoder_Model
 from utils.load_standalone_model import load_model
@@ -133,7 +131,7 @@ def main(args):
         launch_experiment(args, run_dicts, seeds,args.experiment_name, device, models_dict)
     else:
         #create miniworld envrionments for training
-        envs = create_envs(args, args.num_envs)
+        envs = create_envs(args, args.num_envs, not args.no_reward)
         # Run a single training session
         train(opt= args, envs= envs,model_path= model_path,device =device, models_dict= models_dict)
     
