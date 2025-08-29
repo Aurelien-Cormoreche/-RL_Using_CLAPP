@@ -14,7 +14,8 @@ from RL_algorithms.dynamic_encoders import Encoding_Layer, Pretrained_Dynamic_En
 import numpy as np
 import mlflow
 from huggingface_hub import from_pretrained_keras
-
+from tensorflow.keras import layers
+from tensorflow import keras
 def train(opt, envs, model_path, device, models_dict):
     """
     Runs a single training or evaluation session with the specified encoder and environment.
@@ -48,8 +49,13 @@ def train(opt, envs, model_path, device, models_dict):
         encoder_models.append(torch.nn.Flatten(start_dim_flatten))
     elif opt.encoder.startswith('simclr'):
         feature_dim = 128
-        model = from_pretrained_keras("keras-io/semi-supervised-classification-simclr").encoder()
-        encoder_models.append(Keras_Encoder_Model(model))
+
+        model = from_pretrained_keras("keras-io/semi-supervised-classification-simclr")
+        new_model = keras.Model(
+        inputs=model.input,
+        outputs=model.layers[-2].output
+)
+        encoder_models.append(Keras_Encoder_Model(new_model))
 
     # ----- One-hot encoding option -----
     if opt.encoder.endswith('one_hot'):
