@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Linear, ReLU, GELU, LeakyReLU, Softmax, Tanh, Identity
 from collections import defaultdict
-
+#import tensorflow as tf
+import torchvision
 # Actor network for policy approximation
 class ActorModel(nn.Module):
     def __init__(self, num_features, num_actions, two_layers = False,*args, **kwargs):
@@ -139,13 +140,27 @@ class Discrete_Maze_Model():
         return self.states_pointing_to[state]
 
 
+class Keras_Encoder_Model(nn.Module):
+    def __init__(self, keras_model, *args, **kwargs):
 
+        super().__init__(*args, **kwargs)
+        self.keras_model = keras_model
+        self.transform = torchvision.transforms.Resize((96,96))
 
-
-
-        
-
-        
+    @torch.no_grad()
+    def forward(self, x):
+        x = self.transform(x)
+        x_np = (
+            x.detach()
+             .cpu()
+             .permute(0, 2, 3, 1)        
+             .contiguous()
+             .numpy()
+             .astype("float32")
+        )
+        tf_out = self.keras_model(tf.convert_to_tensor(x_np), training=False)
+        out_np = tf_out.numpy()
+        return torch.from_numpy(out_np).to(x.device)
         
 
 
