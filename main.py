@@ -14,8 +14,8 @@ from RL_algorithms.dynamic_encoders import Encoding_Layer, Pretrained_Dynamic_En
 import numpy as np
 import mlflow
 from huggingface_hub import from_pretrained_keras
-from tensorflow.keras import layers
-from tensorflow import keras
+#from tensorflow.keras import layers
+#from tensorflow import keras
 def train(opt, envs, model_path, device, models_dict):
     """
     Runs a single training or evaluation session with the specified encoder and environment.
@@ -48,13 +48,19 @@ def train(opt, envs, model_path, device, models_dict):
             start_dim_flatten = -3
         encoder_models.append(torch.nn.Flatten(start_dim_flatten))
     elif opt.encoder.startswith('simclr'):
+        assert not opt.greyscale
         feature_dim = 128
 
         model = from_pretrained_keras("keras-io/semi-supervised-classification-simclr")
-        new_model = keras.Model(
-        inputs=model.input,
-        outputs=model.layers[-2].output
-)
+
+        inputs = model.input 
+        print(model.summary())
+
+        preprocessed = model.layers[0](inputs) 
+        encoder_output = model.layers[1](preprocessed)  
+
+        new_model = keras.Model(inputs=inputs, outputs=encoder_output)
+
         encoder_models.append(Keras_Encoder_Model(new_model))
 
     # ----- One-hot encoding option -----
@@ -84,7 +90,8 @@ def train(opt, envs, model_path, device, models_dict):
     #create encoder and freeze it
     encoder = Encoder_Model(encoder_models)
     encoder = encoder.to(device).requires_grad_(False)
-    encoder.compile(backend="aot_eager")
+    if not opt.encoder.startswith('simclr'):
+        encoder.compile(backend="aot_eager")
 
     action_dim = envs.single_action_space.n
     feature_dim = feature_dim * opt.nb_stacked_frames
