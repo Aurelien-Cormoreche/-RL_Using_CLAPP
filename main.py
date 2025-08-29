@@ -1,6 +1,6 @@
 import os
 from RL_algorithms.trainer import Trainer
-from RL_algorithms.models import Encoder_Model
+from RL_algorithms.models import Encoder_Model, Keras_Encoder_Model
 from utils.load_standalone_model import load_model
 from utils.utils import save_models, create_ml_flow_experiment, parsing, create_envs, launch_experiment, createPCA, select_device
 from spatial_representations.models import Spatial_Model
@@ -13,6 +13,7 @@ from RL_algorithms.run_separate_dynamic_encoder import run_separate_dynamic_enco
 from RL_algorithms.dynamic_encoders import Encoding_Layer, Pretrained_Dynamic_Encoder
 import numpy as np
 import mlflow
+from huggingface_hub import from_pretrained_keras
 
 def train(opt, envs, model_path, device, models_dict):
     """
@@ -45,6 +46,10 @@ def train(opt, envs, model_path, device, models_dict):
             feature_dim *= 3
             start_dim_flatten = -3
         encoder_models.append(torch.nn.Flatten(start_dim_flatten))
+    elif opt.encoder.startswith('simclr'):
+        feature_dim = 128
+        model = from_pretrained_keras("keras-io/semi-supervised-classification-simclr").encoder()
+        encoder_models.append(Keras_Encoder_Model(model))
 
     # ----- One-hot encoding option -----
     if opt.encoder.endswith('one_hot'):
